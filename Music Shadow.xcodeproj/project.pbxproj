@@ -6,6 +6,15 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		FA8B40892ECB767300F23D9A /* Auth in Frameworks */ = {isa = PBXBuildFile; productRef = FA8B40882ECB767300F23D9A /* Auth */; };
+		FA8B408B2ECB767300F23D9A /* Functions in Frameworks */ = {isa = PBXBuildFile; productRef = FA8B408A2ECB767300F23D9A /* Functions */; };
+		FA8B408D2ECB767300F23D9A /* PostgREST in Frameworks */ = {isa = PBXBuildFile; productRef = FA8B408C2ECB767300F23D9A /* PostgREST */; };
+		FA8B408F2ECB767300F23D9A /* Realtime in Frameworks */ = {isa = PBXBuildFile; productRef = FA8B408E2ECB767300F23D9A /* Realtime */; };
+		FA8B40912ECB767300F23D9A /* Storage in Frameworks */ = {isa = PBXBuildFile; productRef = FA8B40902ECB767300F23D9A /* Storage */; };
+		FA8B40942ECB89DB00F23D9A /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = FA8B40932ECB89DB00F23D9A /* Supabase */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		FA8B405F2ECA787D00F23D9A /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +61,12 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FA8B408D2ECB767300F23D9A /* PostgREST in Frameworks */,
+				FA8B408B2ECB767300F23D9A /* Functions in Frameworks */,
+				FA8B40942ECB89DB00F23D9A /* Supabase in Frameworks */,
+				FA8B40892ECB767300F23D9A /* Auth in Frameworks */,
+				FA8B40912ECB767300F23D9A /* Storage in Frameworks */,
+				FA8B408F2ECB767300F23D9A /* Realtime in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -78,6 +93,7 @@
 				FA8B40512ECA787B00F23D9A /* Music Shadow */,
 				FA8B40612ECA787D00F23D9A /* Music ShadowTests */,
 				FA8B406B2ECA787D00F23D9A /* Music ShadowUITests */,
+				FA8B40922ECB89DB00F23D9A /* Frameworks */,
 				FA8B40502ECA787B00F23D9A /* Products */,
 			);
 			sourceTree = "<group>";
@@ -90,6 +106,13 @@
 				FA8B40682ECA787D00F23D9A /* Music ShadowUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		FA8B40922ECB89DB00F23D9A /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -112,6 +135,12 @@
 			);
 			name = "Music Shadow";
 			packageProductDependencies = (
+				FA8B40882ECB767300F23D9A /* Auth */,
+				FA8B408A2ECB767300F23D9A /* Functions */,
+				FA8B408C2ECB767300F23D9A /* PostgREST */,
+				FA8B408E2ECB767300F23D9A /* Realtime */,
+				FA8B40902ECB767300F23D9A /* Storage */,
+				FA8B40932ECB89DB00F23D9A /* Supabase */,
 			);
 			productName = "Music Shadow";
 			productReference = FA8B404F2ECA787B00F23D9A /* Music Shadow.app */;
@@ -195,6 +224,9 @@
 			);
 			mainGroup = FA8B40462ECA787B00F23D9A;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				FA8B40842ECB742200F23D9A /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = FA8B40502ECA787B00F23D9A /* Products */;
 			projectDirPath = "";
@@ -578,6 +610,50 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		FA8B40842ECB742200F23D9A /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase-community/supabase-swift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.5.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		FA8B40882ECB767300F23D9A /* Auth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FA8B40842ECB742200F23D9A /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Auth;
+		};
+		FA8B408A2ECB767300F23D9A /* Functions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FA8B40842ECB742200F23D9A /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Functions;
+		};
+		FA8B408C2ECB767300F23D9A /* PostgREST */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FA8B40842ECB742200F23D9A /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = PostgREST;
+		};
+		FA8B408E2ECB767300F23D9A /* Realtime */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FA8B40842ECB742200F23D9A /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Realtime;
+		};
+		FA8B40902ECB767300F23D9A /* Storage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FA8B40842ECB742200F23D9A /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Storage;
+		};
+		FA8B40932ECB89DB00F23D9A /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FA8B40842ECB742200F23D9A /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = FA8B40472ECA787B00F23D9A /* Project object */;
 }
