@@ -1,65 +1,73 @@
 import SwiftUI
 import Supabase
 
+// MARK: - Enums
+
 enum BodyLocation: String, CaseIterable, Identifiable {
     case chest, throat, gut, head, limbs, wholeBody, numb
     var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .chest: return "Chest"
+        case .throat: return "Throat"
+        case .gut: return "Gut"
+        case .head: return "Head"
+        case .limbs: return "Arms / legs"
+        case .wholeBody: return "Whole body"
+        case .numb: return "Numb / blank"
+        }
+    }
+
+    var emoji: String {
+        switch self {
+        case .chest: return "💓"
+        case .head: return "🧠"
+        case .gut: return "🌀"
+        case .throat: return "🗣️"
+        case .limbs: return "🦵"
+        case .wholeBody: return "🧍"
+        case .numb: return "🧊"
+        }
+    }
 }
 
 enum SomaticType: String, CaseIterable, Identifiable {
     case tight, heavy, burning, numb, buzzing, urgeCry, urgeScream, collapse
     var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .tight: return "Tight / clenched"
+        case .heavy: return "Heavy"
+        case .burning: return "Burning"
+        case .numb: return "Numb"
+        case .buzzing: return "Buzzing"
+        case .urgeCry: return "Urge to cry"
+        case .urgeScream: return "Urge to scream"
+        case .collapse: return "Collapse / shut down"
+        }
+    }
 }
 
 enum ImpulseType: String, CaseIterable, Identifiable {
     case cry, scream, hide, cling, disappear, attack, nothing
     var id: String { rawValue }
-}
 
-// MARK: - Pretty display names
-
-extension BodyLocation {
     var displayName: String {
         switch self {
-        case .chest:      return "Chest"
-        case .throat:     return "Throat"
-        case .gut:        return "Gut"
-        case .head:       return "Head"
-        case .limbs:      return "Arms / legs"
-        case .wholeBody:  return "Whole body"
-        case .numb:       return "Numb / nothing"
+        case .cry: return "Cry"
+        case .scream: return "Scream"
+        case .hide: return "Hide / curl up"
+        case .cling: return "Cling / hold on"
+        case .disappear: return "Disappear"
+        case .attack: return "Attack"
+        case .nothing: return "Nothing"
         }
     }
 }
 
-extension SomaticType {
-    var displayName: String {
-        switch self {
-        case .tight:        return "Tight / clenched"
-        case .heavy:        return "Heavy"
-        case .burning:      return "Burning"
-        case .numb:         return "Numb"
-        case .buzzing:      return "Buzzing / jittery"
-        case .urgeCry:      return "Urge to cry"
-        case .urgeScream:   return "Urge to scream"
-        case .collapse:     return "Collapsed / shut down"
-        }
-    }
-}
-
-extension ImpulseType {
-    var displayName: String {
-        switch self {
-        case .cry:         return "Cry"
-        case .scream:      return "Scream"
-        case .hide:        return "Hide / curl up"
-        case .cling:       return "Cling / hold on"
-        case .disappear:   return "Disappear / vanish"
-        case .attack:      return "Attack / lash out"
-        case .nothing:     return "Nothing / freeze"
-        }
-    }
-}
+// MARK: - Main View
 
 struct NewTriggerView: View {
 
@@ -117,285 +125,13 @@ struct NewTriggerView: View {
                     }
 
                     // MARK: - SONG
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Song")
-                            .font(.headline)
-                            .foregroundColor(MSTheme.secondaryText)
-
-                        VStack(alignment: .leading, spacing: 8) {
-
-                            // Song title
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Title")
-                                    .font(.caption)
-                                    .foregroundColor(MSTheme.secondaryText)
-                                TextField("Song title", text: $songTitle)
-                                    .textFieldStyle(.plain)
-                                    .padding(10)
-                                    .background(Color.white.opacity(0.08))
-                                    .cornerRadius(10)
-                                    .foregroundColor(.white)
-                            }
-
-                            // Artist
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Artist")
-                                    .font(.caption)
-                                    .foregroundColor(MSTheme.secondaryText)
-                                TextField("Artist", text: $artist)
-                                    .textFieldStyle(.plain)
-                                    .padding(10)
-                                    .background(Color.white.opacity(0.08))
-                                    .cornerRadius(10)
-                                    .foregroundColor(.white)
-                            }
-                        }
-
-                        // Timestamp mini-player
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Spike time in the song")
-                                .foregroundColor(MSTheme.secondaryText)
-                                .font(.caption)
-
-                            Text(
-                                String(
-                                    format: "%d:%02d",
-                                    timestampSeconds / 60,
-                                    timestampSeconds % 60
-                                )
-                            )
-                            .foregroundColor(MSTheme.primaryText)
-                            .font(.title3.monospacedDigit())
-                            .padding(.bottom, 4)
-
-                            Slider(
-                                value: Binding(
-                                    get: { Double(timestampSeconds) },
-                                    set: { timestampSeconds = Int($0) }
-                                ),
-                                in: 0...1200,
-                                step: 1
-                            )
-                            .tint(.purple.opacity(0.9))
-
-                            HStack(spacing: 16) {
-                                Button {
-                                    timestampSeconds = max(0, timestampSeconds - 10)
-                                } label: {
-                                    HStack {
-                                        Image(systemName: "backward.fill")
-                                        Text("-10s")
-                                    }
-                                    .padding(.vertical, 6)
-                                    .padding(.horizontal, 12)
-                                    .background(Color.white.opacity(0.08))
-                                    .cornerRadius(12)
-                                }
-
-                                Button {
-                                    timestampSeconds = min(1200, timestampSeconds + 10)
-                                } label: {
-                                    HStack {
-                                        Image(systemName: "forward.fill")
-                                        Text("+10s")
-                                    }
-                                    .padding(.vertical, 6)
-                                    .padding(.horizontal, 12)
-                                    .background(Color.white.opacity(0.08))
-                                    .cornerRadius(12)
-                                }
-                            }
-                            .font(.caption)
-                            .foregroundColor(.white.opacity(0.85))
-                        }
-                    }
-                    .shadowCard()
+                    songSection
 
                     // MARK: - SOMATIC
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("Somatic")
-                            .font(.headline)
-                            .foregroundColor(MSTheme.secondaryText)
-
-                        Text("Where did you feel it, how did it feel, and what did your body want to do?")
-                            .font(.caption)
-                            .foregroundColor(MSTheme.secondaryText.opacity(0.9))
-
-                        // BODY LOCATION
-                        VStack(alignment: .leading, spacing: 6) {
-                            HStack(spacing: 8) {
-                                Image(systemName: "figure.stand")
-                                    .foregroundColor(.purple.opacity(0.9))
-                                Text("Where in your body?")
-                                    .font(.subheadline)
-                                    .foregroundColor(MSTheme.primaryText)
-                                Spacer()
-                            }
-
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 8) {
-                                    ForEach(BodyLocation.allCases) { loc in
-                                        SomaticChip(
-                                            label: loc.displayName,
-                                            isSelected: bodyLocation == loc
-                                        )
-                                        .onTapGesture {
-                                            bodyLocation = loc
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        // SENSATION TYPE
-                        VStack(alignment: .leading, spacing: 6) {
-                            HStack(spacing: 8) {
-                                Image(systemName: "waveform.path")
-                                    .foregroundColor(.blue.opacity(0.9))
-                                Text("What did it feel like?")
-                                    .font(.subheadline)
-                                    .foregroundColor(MSTheme.primaryText)
-                                Spacer()
-                            }
-
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 8) {
-                                    ForEach(SomaticType.allCases) { t in
-                                        SomaticChip(
-                                            label: t.displayName,
-                                            isSelected: somaticType == t
-                                        )
-                                        .onTapGesture {
-                                            somaticType = t
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        // IMPULSE
-                        VStack(alignment: .leading, spacing: 6) {
-                            HStack(spacing: 8) {
-                                Image(systemName: "figure.run")
-                                    .foregroundColor(.pink.opacity(0.9))
-                                Text("What did your body want to do?")
-                                    .font(.subheadline)
-                                    .foregroundColor(MSTheme.primaryText)
-                                Spacer()
-                            }
-
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 8) {
-                                    ForEach(ImpulseType.allCases) { i in
-                                        SomaticChip(
-                                            label: i.displayName,
-                                            isSelected: impulse == i
-                                        )
-                                        .onTapGesture {
-                                            impulse = i
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        // INTENSITY
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack {
-                                Image(systemName: "bolt.fill")
-                                    .foregroundColor(.yellow.opacity(0.9))
-                                Text("Intensity")
-                                    .font(.subheadline)
-                                    .foregroundColor(MSTheme.secondaryText)
-                                Spacer()
-                                Text("\(Int(intensity))/10")
-                                    .font(.caption)
-                                    .foregroundColor(MSTheme.secondaryText)
-                            }
-
-                            Slider(value: $intensity, in: 1...10, step: 1)
-                                .tint(.blue)
-
-                            HStack {
-                                Text("Soft")
-                                    .font(.caption2)
-                                    .foregroundColor(MSTheme.secondaryText.opacity(0.9))
-                                Spacer()
-                                Text("Overwhelming")
-                                    .font(.caption2)
-                                    .foregroundColor(MSTheme.secondaryText.opacity(0.9))
-                            }
-                        }
-                    }
-                    .shadowCard()
+                    somaticSection
 
                     // MARK: - JOURNAL (GUIDED + FREE)
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("Journal")
-                            .font(.headline)
-                            .foregroundColor(MSTheme.secondaryText)
-
-                        Text("Move through the prompts first, then let anything else spill out below.")
-                            .font(.caption)
-                            .foregroundColor(MSTheme.secondaryText.opacity(0.9))
-
-                        // Guided prompts
-                        VStack(alignment: .leading, spacing: 8) {
-                            journalField(
-                                placeholder: "What did your body do?",
-                                text: $bodyReport
-                            )
-                            journalField(
-                                placeholder: "What did you want to do?",
-                                text: $impulseReport
-                            )
-                            journalField(
-                                placeholder: "What stopped you?",
-                                text: $blockReport
-                            )
-                            journalField(
-                                placeholder: "This feeling reminds me of…",
-                                text: $echoReport
-                            )
-                            journalField(
-                                placeholder: "Belief that showed up",
-                                text: $beliefReport
-                            )
-                            journalField(
-                                placeholder: "What you usually do",
-                                text: $patternReport
-                            )
-                            journalField(
-                                placeholder: "One thing you won’t do next time",
-                                text: $interruptionDirective
-                            )
-                        }
-
-                        // Free-flow journal, on-theme
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("Open reflection")
-                                .font(.subheadline)
-                                .foregroundColor(MSTheme.secondaryText)
-
-                            ZStack(alignment: .topLeading) {
-                                if freeJournal.isEmpty {
-                                    Text("Anything else this song brought up, in your own words.")
-                                        .foregroundColor(MSTheme.secondaryText.opacity(0.7))
-                                        .font(.caption)
-                                        .padding(.horizontal, 14)
-                                        .padding(.vertical, 12)
-                                }
-
-                                TextEditor(text: $freeJournal)
-                                    .foregroundColor(.white)
-                                    .scrollContentBackground(.hidden)
-                                    .padding(10)
-                            }
-                            .background(Color.white.opacity(0.06))
-                            .cornerRadius(12)
-                        }
-                    }
-                    .shadowCard()
+                    journalSection
 
                     // Error message
                     if let errorMessage {
@@ -458,7 +194,314 @@ struct NewTriggerView: View {
         }
     }
 
-    // MARK: - Guided field helper (single source of truth)
+    // MARK: - SONG SECTION
+
+    private var songSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Song")
+                .font(.headline)
+                .foregroundColor(MSTheme.secondaryText)
+
+            VStack(alignment: .leading, spacing: 8) {
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Title")
+                        .font(.caption)
+                        .foregroundColor(MSTheme.secondaryText)
+                    TextField("Song title", text: $songTitle)
+                        .textFieldStyle(.plain)
+                        .padding(10)
+                        .background(Color.white.opacity(0.08))
+                        .cornerRadius(10)
+                        .foregroundColor(.white)
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Artist")
+                        .font(.caption)
+                        .foregroundColor(MSTheme.secondaryText)
+                    TextField("Artist", text: $artist)
+                        .textFieldStyle(.plain)
+                        .padding(10)
+                        .background(Color.white.opacity(0.08))
+                        .cornerRadius(10)
+                        .foregroundColor(.white)
+                }
+            }
+
+            // Timestamp mini-player
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Spike time in the song")
+                    .foregroundColor(MSTheme.secondaryText)
+                    .font(.caption)
+
+                Text(
+                    String(
+                        format: "%d:%02d",
+                        timestampSeconds / 60,
+                        timestampSeconds % 60
+                    )
+                )
+                .foregroundColor(MSTheme.primaryText)
+                .font(.title3.monospacedDigit())
+                .padding(.bottom, 4)
+
+                Slider(
+                    value: Binding(
+                        get: { Double(timestampSeconds) },
+                        set: { timestampSeconds = Int($0) }
+                    ),
+                    in: 0...1200,
+                    step: 1
+                )
+                .tint(.purple.opacity(0.9))
+
+                HStack(spacing: 16) {
+                    Button {
+                        timestampSeconds = max(0, timestampSeconds - 10)
+                    } label: {
+                        HStack {
+                            Image(systemName: "backward.fill")
+                            Text("-10s")
+                        }
+                        .padding(.vertical, 6)
+                        .padding(.horizontal, 12)
+                        .background(Color.white.opacity(0.08))
+                        .cornerRadius(12)
+                    }
+
+                    Button {
+                        timestampSeconds = min(1200, timestampSeconds + 10)
+                    } label: {
+                        HStack {
+                            Image(systemName: "forward.fill")
+                            Text("+10s")
+                        }
+                        .padding(.vertical, 6)
+                        .padding(.horizontal, 12)
+                        .background(Color.white.opacity(0.08))
+                        .cornerRadius(12)
+                    }
+                }
+                .font(.caption)
+                .foregroundColor(.white.opacity(0.85))
+            }
+        }
+        .shadowCard()
+    }
+
+    // MARK: - SOMATIC SECTION
+
+    private var somaticSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Somatic")
+                .font(.headline)
+                .foregroundColor(MSTheme.secondaryText)
+
+            Text("Where did you feel it, how did it feel, and what did your body want to do?")
+                .font(.caption)
+                .foregroundColor(MSTheme.secondaryText.opacity(0.9))
+
+            // Body location chips
+            HStack(spacing: 6) {
+                Image(systemName: "figure.arms.open")
+                    .foregroundColor(.pink.opacity(0.9))
+                Text("Where in your body?")
+                    .font(.subheadline.weight(.semibold))
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(BodyLocation.allCases) { loc in
+                        somaticChip(
+                            title: "\(loc.emoji) \(loc.displayName)",
+                            isSelected: loc == bodyLocation
+                        ) {
+                            bodyLocation = loc
+                        }
+                    }
+                }
+            }
+
+            // Sensation chips
+            HStack(spacing: 6) {
+                Image(systemName: "waveform.path.ecg")
+                    .foregroundColor(.blue.opacity(0.9))
+                Text("What did it feel like?")
+                    .font(.subheadline.weight(.semibold))
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(SomaticType.allCases) { t in
+                        somaticChip(
+                            title: t.displayName,
+                            isSelected: t == somaticType
+                        ) {
+                            somaticType = t
+                        }
+                    }
+                }
+            }
+
+            // Impulse chips
+            HStack(spacing: 6) {
+                Image(systemName: "figure.run")
+                    .foregroundColor(.orange.opacity(0.9))
+                Text("What did your body want to do?")
+                    .font(.subheadline.weight(.semibold))
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(ImpulseType.allCases) { i in
+                        somaticChip(
+                            title: i.displayName,
+                            isSelected: i == impulse
+                        ) {
+                            impulse = i
+                        }
+                    }
+                }
+            }
+
+            // Intensity slider
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Image(systemName: "bolt.fill")
+                        .foregroundColor(.yellow)
+                    Text("Intensity")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(MSTheme.primaryText)
+
+                    Spacer()
+
+                    Text("\(Int(intensity))/10")
+                        .font(.caption)
+                        .foregroundColor(MSTheme.secondaryText)
+                }
+
+                Slider(value: $intensity, in: 1...10, step: 1)
+                    .tint(.blue)
+
+                HStack {
+                    Text("Soft")
+                        .font(.caption2)
+                        .foregroundColor(MSTheme.secondaryText.opacity(0.8))
+                    Spacer()
+                    Text("Overwhelming")
+                        .font(.caption2)
+                        .foregroundColor(MSTheme.secondaryText.opacity(0.8))
+                }
+            }
+            .padding(.top, 8)
+        }
+        .shadowCard()
+    }
+
+    private func somaticChip(title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.caption)
+                .padding(.vertical, 6)
+                .padding(.horizontal, 12)
+                .background(
+                    Capsule()
+                        .fill(
+                            isSelected
+                            ? AnyShapeStyle(
+                                LinearGradient(
+                                    colors: [.purple, .blue],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            : AnyShapeStyle(Color.white.opacity(0.06))
+                        )
+                )
+                .overlay(
+                    Capsule()
+                        .stroke(
+                            isSelected ? Color.white.opacity(0.9) : MSTheme.cardStroke,
+                            lineWidth: isSelected ? 1.2 : 1
+                        )
+                )
+                .foregroundColor(.white)
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+
+    // MARK: - JOURNAL SECTION
+
+    private var journalSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Journal")
+                .font(.headline)
+                .foregroundColor(MSTheme.secondaryText)
+
+            Text("Move through the prompts first, then let anything else spill out below.")
+                .font(.caption)
+                .foregroundColor(MSTheme.secondaryText.opacity(0.9))
+
+            // Guided prompts
+            VStack(alignment: .leading, spacing: 8) {
+                journalField(
+                    placeholder: "What did your body do?",
+                    text: $bodyReport
+                )
+                journalField(
+                    placeholder: "What did you want to do?",
+                    text: $impulseReport
+                )
+                journalField(
+                    placeholder: "What stopped you?",
+                    text: $blockReport
+                )
+                journalField(
+                    placeholder: "This feeling reminds me of…",
+                    text: $echoReport
+                )
+                journalField(
+                    placeholder: "Belief that showed up",
+                    text: $beliefReport
+                )
+                journalField(
+                    placeholder: "What you usually do",
+                    text: $patternReport
+                )
+                journalField(
+                    placeholder: "One thing you won’t do next time",
+                    text: $interruptionDirective
+                )
+            }
+
+            // Free-flow journal, on-theme
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Open reflection")
+                    .font(.subheadline)
+                    .foregroundColor(MSTheme.secondaryText)
+
+                ZStack(alignment: .topLeading) {
+                    if freeJournal.isEmpty {
+                        Text("Anything else this song brought up, in your own words.")
+                            .foregroundColor(MSTheme.secondaryText.opacity(0.7))
+                            .font(.caption)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 12)
+                    }
+
+                    TextEditor(text: $freeJournal)
+                        .foregroundColor(.white)
+                        .scrollContentBackground(.hidden)
+                        .padding(10)
+                }
+                .background(Color.white.opacity(0.06))
+                .cornerRadius(12)
+            }
+        }
+        .shadowCard()
+    }
+
     private func journalField(placeholder: String, text: Binding<String>) -> some View {
         ZStack(alignment: .leading) {
             if text.wrappedValue.isEmpty {
@@ -474,40 +517,9 @@ struct NewTriggerView: View {
         .background(Color.white.opacity(0.06))
         .cornerRadius(12)
     }
-    // MARK: - SomaticChip
 
-    struct SomaticChip: View {
-        let label: String
-        let isSelected: Bool
-
-        var body: some View {
-            Text(label)
-                .font(.caption)
-                .lineLimit(1)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(
-                    Group {
-                        if isSelected {
-                            LinearGradient(
-                                colors: [.purple, .blue],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        } else {
-                            Color.white.opacity(0.06)
-                        }
-                    }
-                )
-                .foregroundColor(isSelected ? .white : MSTheme.secondaryText)
-                .clipShape(Capsule())
-                .overlay(
-                    Capsule()
-                        .stroke(Color.white.opacity(isSelected ? 0 : 0.2), lineWidth: 1)
-                )
-        }
-    }
     // MARK: - Supabase + Gemini Logic
+
     private func saveEvent() async {
         do {
             let client = SupabaseClientManager.shared.client
@@ -581,7 +593,6 @@ struct NewTriggerView: View {
         }
     }
 
-    // MARK: - Edge Function
     private func triggerInsight(eventId: UUID, sessionUserId: UUID) async throws {
         let client = SupabaseClientManager.shared.client
 

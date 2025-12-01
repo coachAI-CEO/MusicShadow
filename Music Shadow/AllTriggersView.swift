@@ -6,6 +6,7 @@ struct AllTriggersView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
+
                 // Header
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Your logged triggers")
@@ -42,10 +43,42 @@ struct AllTriggersView: View {
         .navigationTitle("Triggers")
         .navigationBarTitleDisplayMode(.inline)
     }
-}//
-//  Untitled.swift
-//  Music Shadow
-//
-//  Created by macbook on 11/26/25.
-//
+}
 
+struct TriggerRow: View {
+    let event: SongEvent
+
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(event.song_title ?? "Unknown song")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(MSTheme.primaryText)
+
+                if let artist = event.artist, !artist.isEmpty {
+                    Text(artist)
+                        .font(.caption)
+                        .foregroundColor(MSTheme.secondaryText)
+                }
+
+                if let created = event.created_at {
+                    Text(created)
+                        .font(.caption2)
+                        .foregroundColor(MSTheme.secondaryText.opacity(0.7))
+                }
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundColor(MSTheme.secondaryText.opacity(0.8))
+        }
+        .padding(.vertical, 10)
+        .padding(.horizontal, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.white.opacity(0.04))
+        )
+    }
+}

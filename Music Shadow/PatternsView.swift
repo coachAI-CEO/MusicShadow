@@ -1,32 +1,36 @@
 import SwiftUI
 import Supabase
-import Charts
+
+// MARK: - Patterns View
 
 struct PatternsView: View {
     @State private var events: [SongEvent] = []
     @State private var insights: [ShadowInsight] = []
 
-    @State private var isLoading = true
+    @State private var isLoading: Bool = true
     @State private var errorMessage: String?
+
+    // Daily radar toggle (notifications can hook in later)
+    @State private var radarRemindersEnabled: Bool = false
 
     var body: some View {
         ZStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
 
-                    // MARK: Header
+                    // Header
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Patterns")
                             .font(.title.bold())
                             .foregroundColor(MSTheme.primaryText)
 
-                        Text("See how your triggers cluster across body, impulses, and sensations.")
+                        Text("See how your triggers cluster across body, impulses, sensations, and AI reflections.")
                             .font(.subheadline)
                             .foregroundColor(MSTheme.secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     .padding(.top, 8)
 
-                    // MARK: Loading / error states
                     if isLoading {
                         ProgressView("Loading your patterns…")
                             .foregroundColor(.white)
@@ -36,30 +40,43 @@ struct PatternsView: View {
                             .foregroundColor(.red)
                             .font(.caption)
                     } else {
-                        // MARK: 1) Somatic map
+                        // 1. Daily Emotional Radar
+                        if !radarPoints.isEmpty {
+                            DailyRadarCard(
+                                points: radarPoints,
+                                remindersEnabled: $radarRemindersEnabled
+                            )
+                        }
+
+                        // 2. Somatic map
                         if !events.isEmpty {
                             SomaticMapCard(bodyCounts: bodyLocationCounts)
                         }
 
-                        // MARK: 2) Response patterns
+                        // 3. Response patterns
                         if !events.isEmpty {
-                            ImpulseSensationCard(
+                            ResponsePatternsCard(
                                 impulseCounts: impulseCounts,
                                 somaticCounts: somaticCounts
                             )
                         }
 
-                        // MARK: 3) Intensity over time
-                        if !intensitySeries.isEmpty {
-                            IntensityTimelineCard(points: intensitySeries)
+                        // 4. Shadow Archetype snapshot
+                        if let snapshot = archetypeSnapshot {
+                            ShadowArchetypeSummaryCard(snapshot: snapshot)
                         }
 
-                        // MARK: 4) AI themes snapshot
+                        // 5. AI Themes snapshot
                         if !insights.isEmpty {
                             AIThemesCard(insights: insights)
                         }
 
-                        // MARK: 5) Jump to full logs
+                        // 6. Song Activation Analytics
+                        if !songAggregates.isEmpty {
+                            SongActivationCard(songs: songAggregates)
+                        }
+
+                        // 7. Logged Triggers CTA
                         if !events.isEmpty {
                             NavigationLink {
                                 AllTriggersView(events: events)
@@ -67,18 +84,19 @@ struct PatternsView: View {
                                 Text("Your logged triggers")
                                     .font(.subheadline.weight(.semibold))
                                     .foregroundColor(MSTheme.primaryText)
-                                    .padding(.horizontal, 24)
-                                    .padding(.vertical, 10)
+                                    .padding(.vertical, 12)
+                                    .padding(.horizontal, 32)
+                                    .frame(maxWidth: .infinity)
                                     .background(
                                         RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                            .fill(Color.white.opacity(0.04))
+                                            .fill(Color.white.opacity(0.06))
                                             .overlay(
                                                 RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                                    .stroke(MSTheme.cardStroke, lineWidth: 1)
+                                                    .stroke(MSTheme.cardStroke, lineWidth: 0.8)
                                             )
                                     )
                             }
-                            .frame(maxWidth: .infinity, alignment: .center)
+                            .buttonStyle(.plain)
                             .padding(.top, 4)
                         }
                     }
@@ -92,15 +110,121 @@ struct PatternsView: View {
             await loadEvents()
             await loadInsights()
         }
+        // For now this just logs; you can hook into notifications later.
+        .onChange(of: radarRemindersEnabled) { newValue in
+            print("Radar reminders toggled: \(newValue)")
+        }
     }
 }
 
-//
-// MARK: - 1) Somatic map
-//
+// MARK: - 1) Daily Emotional Radar
+
+struct RadarDayPoint: Identifiable {
+    let id = UUID()
+    let date: Date
+    let label: String
+    let averageIntensity: Double
+    let isToday: Bool
+    let isHigh: Bool
+}
+
+struct DailyRadarCard: View {
+    let points: [RadarDayPoint]
+    @Binding var remindersEnabled: Bool
+
+    private var activeDays: Int {
+        points.filter { $0.isHigh }.count
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Shadow radar")
+                        .font(.headline)
+                        .foregroundColor(MSTheme.secondaryText)
+
+                    Text("A 7-day view of how active your shadow spikes have been.")
+                        .font(.caption)
+                        .foregroundColor(MSTheme.secondaryText.opacity(0.9))
+                }
+
+                Spacer()
+
+                Toggle(isOn: $remindersEnabled) {
+                    Text("Daily ping")
+                        .font(.caption)
+                        .foregroundColor(MSTheme.secondaryText)
+                }
+                .toggleStyle(SwitchToggleStyle(tint: .purple))
+                .labelsHidden()
+            }
+
+            HStack(spacing: 10) {
+                ForEach(points) { point in
+                    VStack(spacing: 4) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.white.opacity(0.14))
+
+                            if point.isHigh {
+                                Circle()
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [.purple, .blue],
+                                            startPoint: .top,
+                                            endPoint: .bottom
+                                        )
+                                    )
+                            }
+                        }
+                        .frame(width: point.isToday ? 14 : 10,
+                               height: point.isToday ? 14 : 10)
+                        .overlay(
+                            Circle()
+                                .stroke(
+                                    point.isToday ? Color.white.opacity(0.9) : Color.clear,
+                                    lineWidth: 1
+                                )
+                        )
+
+                        Text(point.label)
+                            .font(.caption2)
+                            .foregroundColor(MSTheme.secondaryText.opacity(point.isToday ? 1 : 0.75))
+                    }
+                }
+            }
+            .padding(.top, 4)
+
+            Text(summaryText)
+                .font(.caption2)
+                .foregroundColor(MSTheme.secondaryText.opacity(0.9))
+        }
+        .shadowCard()
+    }
+
+    private var summaryText: String {
+        guard !points.isEmpty else { return "No data yet." }
+        if activeDays == 0 {
+            return "No strong spikes in the last week. Stay curious and keep tracking."
+        } else if activeDays <= 2 {
+            return "Your shadow has flared a few times this week. Notice what those days had in common."
+        } else {
+            return "Your shadow has been active on \(activeDays) of the last 7 days. This is a rich window for gentle work."
+        }
+    }
+}
+
+// MARK: - 2) Somatic Map
+
+struct PatternCountItem: Identifiable {
+    let id = UUID()
+    let label: String
+    let count: Int
+}
 
 struct SomaticMapCard: View {
-    let bodyCounts: [CountItem]
+    let bodyCounts: [PatternCountItem]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -132,10 +256,10 @@ struct SomaticMapCard: View {
 }
 
 struct SomaticRow: View {
-    let item: CountItem
+    let item: PatternCountItem
     let maxCount: Int
 
-    private var intensityLabel: String {
+    private var intensityText: String {
         let ratio = Double(item.count) / Double(maxCount)
         switch ratio {
         case 0.75...: return "High"
@@ -154,7 +278,9 @@ struct SomaticRow: View {
                     Text(item.label.capitalized)
                         .font(.subheadline.weight(.semibold))
                         .foregroundColor(MSTheme.primaryText)
+
                     Spacer()
+
                     Text("\(item.count)x")
                         .font(.caption)
                         .foregroundColor(MSTheme.secondaryText)
@@ -183,7 +309,7 @@ struct SomaticRow: View {
                 }
                 .frame(height: 10)
 
-                Text(intensityLabel)
+                Text(intensityText)
                     .font(.caption2)
                     .foregroundColor(MSTheme.secondaryText.opacity(0.9))
             }
@@ -205,13 +331,11 @@ private func bodyEmoji(for label: String) -> String {
     }
 }
 
-//
-// MARK: - 2) Impulse + Sensation mix
-//
+// MARK: - 3) Response Patterns
 
-struct ImpulseSensationCard: View {
-    let impulseCounts: [CountItem]
-    let somaticCounts: [CountItem]
+struct ResponsePatternsCard: View {
+    let impulseCounts: [PatternCountItem]
+    let somaticCounts: [PatternCountItem]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -224,7 +348,6 @@ struct ImpulseSensationCard: View {
                 .foregroundColor(MSTheme.secondaryText.opacity(0.9))
 
             HStack(alignment: .top, spacing: 16) {
-
                 // Impulses
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 6) {
@@ -284,76 +407,174 @@ struct ImpulseSensationCard: View {
     }
 }
 
-//
-// MARK: - 3) Intensity over time
-//
+// MARK: - 4) Shadow Archetypes
 
-struct IntensityTimelineCard: View {
-    let points: [IntensityPoint]
+enum ShadowArchetypeID: String, CaseIterable {
+    case abandonedChild = "AbandonedChild"
+    case loneWolf       = "LoneWolf"
+    case overachiever   = "Overachiever"
+    case invisibleOne   = "InvisibleOne"
+    case protector      = "Protector"
+    case mask           = "Mask"
+    case performer      = "Performer"
+}
+
+struct ShadowArchetypeScore {
+    let id: ShadowArchetypeID
+    let score: Int
+}
+
+struct ShadowArchetypeSnapshot {
+    let primary: ShadowArchetypeScore
+    let secondary: ShadowArchetypeScore?
+}
+
+struct ShadowArchetypeSummaryCard: View {
+    let snapshot: ShadowArchetypeSnapshot
+
+    private var primaryProfile: ShadowArchetypeProfile {
+        ShadowArchetypeProfile.profile(for: snapshot.primary.id)
+    }
+
+    private var secondaryProfile: ShadowArchetypeProfile? {
+        guard let secondary = snapshot.secondary else { return nil }
+        return ShadowArchetypeProfile.profile(for: secondary.id)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Shadow spikes over time")
+            Text("Shadow archetype")
                 .font(.headline)
                 .foregroundColor(MSTheme.secondaryText)
 
-            Text("How intense your triggers have been recently.")
+            Text("A rough sketch of the pattern your triggers cluster around. This will evolve as you log more.")
                 .font(.caption)
                 .foregroundColor(MSTheme.secondaryText.opacity(0.9))
 
-            Chart(points) { point in
-                LineMark(
-                    x: .value("Date", point.date),
-                    y: .value("Intensity", point.intensity)
-                )
-                .interpolationMethod(.catmullRom)
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [.purple, .blue],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
+            HStack(alignment: .top, spacing: 12) {
+                Text(primaryProfile.emoji)
+                    .font(.system(size: 32))
 
-                PointMark(
-                    x: .value("Date", point.date),
-                    y: .value("Intensity", point.intensity)
-                )
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(primaryProfile.name)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(MSTheme.primaryText)
+
+                    Text(primaryProfile.tagline)
+                        .font(.caption)
+                        .foregroundColor(MSTheme.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer()
             }
-            .frame(height: 180)
+            .padding(.vertical, 4)
 
-            if let last = points.last {
-                Text("Last spike: \(last.intensity)/10")
-                    .font(.caption)
+            if let secondaryProfile {
+                Divider()
+                    .background(MSTheme.cardStroke)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Secondary pattern")
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(MSTheme.secondaryText)
+
+                    HStack(spacing: 8) {
+                        Text(secondaryProfile.emoji)
+                        Text(secondaryProfile.name)
+                            .font(.caption)
+                    }
                     .foregroundColor(MSTheme.secondaryText)
+                }
             }
         }
         .shadowCard()
     }
 }
 
-//
-// MARK: - 4) AI themes snapshot
-//
+struct ShadowArchetypeProfile {
+    let id: ShadowArchetypeID
+    let name: String
+    let emoji: String
+    let tagline: String
+}
+
+extension ShadowArchetypeProfile {
+    static func profile(for id: ShadowArchetypeID) -> ShadowArchetypeProfile {
+        switch id {
+        case .abandonedChild:
+            return .init(
+                id: id,
+                name: "The Abandoned Child",
+                emoji: "🧸",
+                tagline: "Fears being left, unseen, or too much. Big spikes when closeness feels threatened."
+            )
+        case .loneWolf:
+            return .init(
+                id: id,
+                name: "The Lone Wolf",
+                emoji: "🐺",
+                tagline: "Handles everything alone, pulls away when it feels too vulnerable or dependent."
+            )
+        case .overachiever:
+            return .init(
+                id: id,
+                name: "The Overachiever",
+                emoji: "🏅",
+                tagline: "Drives hard to prove worth. Triggers land when standards aren’t met or effort isn’t seen."
+            )
+        case .invisibleOne:
+            return .init(
+                id: id,
+                name: "The Invisible One",
+                emoji: "👻",
+                tagline: "Stays small or fades out to stay safe. Spikes when ignored, talked over, or unseen."
+            )
+        case .protector:
+            return .init(
+                id: id,
+                name: "The Protector",
+                emoji: "🛡️",
+                tagline: "Stays guarded, scanning for threat. Reacts quickly to potential hurt or disrespect."
+            )
+        case .mask:
+            return .init(
+                id: id,
+                name: "The Mask",
+                emoji: "🎭",
+                tagline: "Presents what’s acceptable, hides the rest. Triggered when the mask slips or feels forced."
+            )
+        case .performer:
+            return .init(
+                id: id,
+                name: "The Performer",
+                emoji: "🎤",
+                tagline: "Wins love through doing and entertaining. Spikes when the audience disappears."
+            )
+        }
+    }
+}
+
+// MARK: - 5) AI Themes Card
 
 struct AIThemesCard: View {
     let insights: [ShadowInsight]
 
-    private var woundCounts: [CountItem] {
+    private var woundCounts: [PatternCountItem] {
         aggregate(insights.compactMap { $0.wound_type })
     }
 
-    private var protectorCounts: [CountItem] {
+    private var protectorCounts: [PatternCountItem] {
         aggregate(insights.compactMap { $0.protector_mode })
     }
 
-    private var beliefCounts: [CountItem] {
+    private var beliefCounts: [PatternCountItem] {
         aggregate(insights.compactMap { $0.core_belief })
     }
 
-    private var primaryWound: CountItem? { woundCounts.first }
-    private var primaryProtector: CountItem? { protectorCounts.first }
-    private var primaryBelief: CountItem? { beliefCounts.first }
+    private var primaryWound: PatternCountItem? { woundCounts.first }
+    private var primaryProtector: PatternCountItem? { protectorCounts.first }
+    private var primaryBelief: PatternCountItem? { beliefCounts.first }
 
     private var latestInsight: ShadowInsight? {
         insights.first
@@ -375,6 +596,7 @@ struct AIThemesCard: View {
                     .foregroundColor(MSTheme.secondaryText)
             } else {
                 VStack(alignment: .leading, spacing: 10) {
+
                     if primaryWound != nil || primaryProtector != nil {
                         Text("Most active themes")
                             .font(.subheadline.weight(.semibold))
@@ -384,7 +606,7 @@ struct AIThemesCard: View {
                             if let wound = primaryWound {
                                 themePill(
                                     icon: "heart.text.square",
-                                    label: "Wound",
+                                    label: "WOUND",
                                     value: wound.label
                                 )
                             }
@@ -392,7 +614,7 @@ struct AIThemesCard: View {
                             if let protector = primaryProtector {
                                 themePill(
                                     icon: "shield.lefthalf.fill",
-                                    label: "Protector",
+                                    label: "PROTECTOR",
                                     value: protector.label
                                 )
                             }
@@ -433,9 +655,9 @@ struct AIThemesCard: View {
 
                         if let practice = latest.suggested_practice, !practice.isEmpty {
                             HStack(alignment: .top, spacing: 6) {
-                                Image(systemName: "sparkles")
-                                    .foregroundColor(.purple.opacity(0.9))
-                                    .font(.caption)
+                                Image(systemName: "brain.head.profile")
+                                    .foregroundColor(.white.opacity(0.85))
+                                    .font(.system(size: 20, weight: .semibold))
 
                                 Text(practice)
                                     .font(.footnote)
@@ -449,12 +671,6 @@ struct AIThemesCard: View {
             }
         }
         .shadowCard()
-    }
-
-    private func aggregate(_ items: [String]) -> [CountItem] {
-        Dictionary(grouping: items, by: { $0 })
-            .map { key, value in CountItem(label: key, count: value.count) }
-            .sorted { $0.count > $1.count }
     }
 
     private func themePill(icon: String, label: String, value: String) -> some View {
@@ -480,84 +696,170 @@ struct AIThemesCard: View {
         )
         .foregroundColor(MSTheme.primaryText)
     }
+
+    private func aggregate(_ items: [String]) -> [PatternCountItem] {
+        Dictionary(grouping: items, by: { $0 })
+            .map { key, value in PatternCountItem(label: key, count: value.count) }
+            .sorted { $0.count > $1.count }
+    }
 }
 
-//
-// MARK: - Trigger row + models
-//
+// MARK: - 6) Song Activation Analytics
 
-struct TriggerRow: View {
-    let event: SongEvent
+struct SongActivationAggregate: Identifiable {
+    let id = UUID()
+    let title: String
+    let artist: String
+    let count: Int
+    let averageIntensity: Double
+    let maxIntensity: Int
+}
+
+struct SongActivationCard: View {
+    let songs: [SongActivationAggregate]
+
+    private var primary: SongActivationAggregate? { songs.first }
+    private var secondary: SongActivationAggregate? {
+        songs.count > 1 ? songs[1] : nil
+    }
 
     var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(event.song_title ?? "Unknown song")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundColor(MSTheme.primaryText)
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Song activation analytics")
+                .font(.headline)
+                .foregroundColor(MSTheme.secondaryText)
 
-                Text(event.artist ?? "")
-                    .font(.caption)
-                    .foregroundColor(MSTheme.secondaryText)
+            Text("Which songs consistently light up your system.")
+                .font(.caption)
+                .foregroundColor(MSTheme.secondaryText.opacity(0.9))
 
-                if let created = event.created_at {
-                    Text(created)
+            if let primary {
+                primaryTile(primary)
+            }
+
+            if let secondary {
+                Divider()
+                    .background(MSTheme.cardStroke)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Also very active")
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(MSTheme.secondaryText)
+
+                    Text("\(secondary.title) — \(secondary.artist)")
+                        .font(.footnote)
+                        .foregroundColor(MSTheme.primaryText)
+
+                    Text("\(secondary.count)x spikes · max \(secondary.maxIntensity)/10")
                         .font(.caption2)
-                        .foregroundColor(MSTheme.secondaryText.opacity(0.7))
+                        .foregroundColor(MSTheme.secondaryText.opacity(0.9))
                 }
             }
 
-            Spacer()
-
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundColor(MSTheme.secondaryText.opacity(0.8))
+            if songs.count > 2 {
+                Text("+\(songs.count - 2) more songs showing up in your shadow.")
+                    .font(.caption2)
+                    .foregroundColor(MSTheme.secondaryText.opacity(0.8))
+                    .padding(.top, 4)
+            }
         }
-        .padding(.vertical, 10)
-        .padding(.horizontal, 12)
+        .shadowCard()
+    }
+
+    private func primaryTile(_ song: SongActivationAggregate) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [.purple, .blue],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 40, height: 40)
+
+                    Image(systemName: "music.quarternote.3")
+                        .foregroundColor(.white)
+                        .font(.system(size: 20, weight: .semibold))
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Most activated song")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundColor(MSTheme.secondaryText)
+
+                    Text(song.title)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(MSTheme.primaryText)
+
+                    Text(song.artist)
+                        .font(.caption2)
+                        .foregroundColor(MSTheme.secondaryText.opacity(0.9))
+                }
+
+                Spacer()
+            }
+
+            HStack(spacing: 10) {
+                statPill(label: "Spikes", value: "\(song.count)x")
+                statPill(label: "Avg intensity",
+                         value: String(format: "%.1f/10", song.averageIntensity))
+                statPill(label: "Max", value: "\(song.maxIntensity)/10")
+            }
+        }
+        .padding(.top, 4)
+    }
+
+    private func statPill(label: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label.uppercased())
+                .font(.caption2.weight(.semibold))
+                .foregroundColor(.white.opacity(0.75))
+            Text(value)
+                .font(.caption)
+                .foregroundColor(.white)
+        }
+        .padding(.vertical, 6)
+        .padding(.horizontal, 10)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.white.opacity(0.04))
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.white.opacity(0.08))
         )
     }
 }
 
-struct CountItem: Identifiable {
-    let id = UUID()
-    let label: String
-    let count: Int
-}
-
-struct IntensityPoint: Identifiable {
-    let id = UUID()
-    let date: Date
-    let intensity: Int
-}
-
-//
-// MARK: - Aggregations
-//
+// MARK: - Aggregations & Derived Data
 
 extension PatternsView {
-    var bodyLocationCounts: [CountItem] {
-        aggregate(events.compactMap { $0.body_location })
+
+    // Somatic / impulse / sensation
+    var bodyLocationCounts: [PatternCountItem] {
+        aggregateCounts(events.compactMap { $0.body_location })
     }
 
-    var impulseCounts: [CountItem] {
-        aggregate(events.compactMap { $0.impulse })
+    var impulseCounts: [PatternCountItem] {
+        aggregateCounts(events.compactMap { $0.impulse })
     }
 
-    var somaticCounts: [CountItem] {
-        aggregate(events.compactMap { $0.somatic_type })
+    var somaticCounts: [PatternCountItem] {
+        aggregateCounts(events.compactMap { $0.somatic_type })
     }
 
-    private func aggregate(_ items: [String]) -> [CountItem] {
+    private func aggregateCounts(_ items: [String]) -> [PatternCountItem] {
         Dictionary(grouping: items, by: { $0 })
-            .map { key, value in CountItem(label: key, count: value.count) }
+            .map { key, value in PatternCountItem(label: key, count: value.count) }
             .sorted { $0.count > $1.count }
     }
 
-    var intensitySeries: [IntensityPoint] {
+    struct PatternIntensityPoint: Identifiable {
+        let id = UUID()
+        let date: Date
+        let intensity: Int
+    }
+
+    var intensitySeries: [PatternIntensityPoint] {
         let formatter = ISO8601DateFormatter()
         return events.compactMap { event in
             guard
@@ -566,15 +868,160 @@ extension PatternsView {
                 let intensity = event.intensity
             else { return nil }
 
-            return IntensityPoint(date: date, intensity: intensity)
+            return PatternIntensityPoint(date: date, intensity: intensity)
         }
         .sorted { $0.date < $1.date }
     }
+
+    // Radar points – 7-day window
+    var radarPoints: [RadarDayPoint] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+
+        var buckets: [Date: [Int]] = [:]
+        for point in intensitySeries {
+            let day = calendar.startOfDay(for: point.date)
+            buckets[day, default: []].append(point.intensity)
+        }
+
+        var result: [RadarDayPoint] = []
+
+        for offset in (0..<7).reversed() {
+            guard let day = calendar.date(byAdding: .day, value: -offset, to: today) else { continue }
+            let dayStart = calendar.startOfDay(for: day)
+            let intensities = buckets[dayStart] ?? []
+            let avg = intensities.isEmpty ? 0.0 : Double(intensities.reduce(0, +)) / Double(intensities.count)
+
+            let labelFormatter = DateFormatter()
+            labelFormatter.dateFormat = "E"
+            let label = offset == 0 ? "Today" : labelFormatter.string(from: day)
+
+            let isHigh = avg >= 7.0
+
+            result.append(
+                RadarDayPoint(
+                    date: dayStart,
+                    label: label,
+                    averageIntensity: avg,
+                    isToday: offset == 0,
+                    isHigh: isHigh
+                )
+            )
+        }
+
+        return result
+    }
+
+    // Archetype snapshot (primary + secondary)
+    var archetypeSnapshot: ShadowArchetypeSnapshot? {
+        let scores = computeArchetypeScores(events: events, insights: insights)
+        guard let primary = scores.first else { return nil }
+        let secondary = scores.count > 1 ? scores[1] : nil
+        return ShadowArchetypeSnapshot(primary: primary, secondary: secondary)
+    }
+
+    private func computeArchetypeScores(
+        events: [SongEvent],
+        insights: [ShadowInsight]
+    ) -> [ShadowArchetypeScore] {
+
+        var buckets: [ShadowArchetypeID: Int] = [:]
+        func bump(_ id: ShadowArchetypeID, by value: Int = 1) {
+            buckets[id, default: 0] += value
+        }
+
+        // 1) AI insights
+        for insight in insights {
+            let wound = (insight.wound_type ?? "").lowercased()
+            let protector = (insight.protector_mode ?? "").lowercased()
+            let belief = (insight.core_belief ?? "").lowercased()
+
+            if wound.contains("abandon") || belief.contains("unlovable") || belief.contains("not worthy") {
+                bump(.abandonedChild, by: 3)
+            }
+            if protector.contains("withdraw") || protector.contains("isolation") {
+                bump(.loneWolf, by: 2)
+            }
+            if protector.contains("perfection") || belief.contains("never enough") {
+                bump(.overachiever, by: 2)
+            }
+            if belief.contains("invisible") || belief.contains("don’t matter") {
+                bump(.invisibleOne, by: 2)
+            }
+            if protector.contains("anger") || protector.contains("guard") {
+                bump(.protector, by: 2)
+            }
+            if protector.contains("people pleasing") || belief.contains("must be liked") {
+                bump(.performer, by: 2)
+            }
+        }
+
+        // 2) Raw impulses / sensations
+        let impulses = events.compactMap { $0.impulse?.lowercased() }
+        let sensations = events.compactMap { $0.somatic_type?.lowercased() }
+
+        let impulseCounts = Dictionary(grouping: impulses, by: { $0 }).mapValues { $0.count }
+        let sensationCounts = Dictionary(grouping: sensations, by: { $0 }).mapValues { $0.count }
+
+        if (impulseCounts["cry"] ?? 0) > 0 || (sensationCounts["tight"] ?? 0) > 0 {
+            bump(.abandonedChild)
+        }
+        if (impulseCounts["disappear"] ?? 0) > 0 || (impulseCounts["hide"] ?? 0) > 0 {
+            bump(.invisibleOne)
+        }
+        if (impulseCounts["attack"] ?? 0) > 0 {
+            bump(.protector)
+        }
+        if (impulseCounts["cling"] ?? 0) > 0 {
+            bump(.abandonedChild)
+        }
+
+        // Fallback so UI always has something
+        if buckets.isEmpty {
+            buckets[.loneWolf] = 1
+        }
+
+        return buckets
+            .map { ShadowArchetypeScore(id: $0.key, score: $0.value) }
+            .sorted { $0.score > $1.score }
+    }
+
+    // Song Activation aggregation
+    var songAggregates: [SongActivationAggregate] {
+        guard !events.isEmpty else { return [] }
+
+        struct SongKey: Hashable {
+            let title: String
+            let artist: String
+        }
+
+        let grouped = Dictionary(grouping: events) { event in
+            SongKey(
+                title: event.song_title ?? "Unknown song",
+                artist: event.artist ?? "Unknown artist"
+            )
+        }
+
+        return grouped.map { key, songEvents in
+            let intensities = songEvents.compactMap { $0.intensity }
+            let avg = intensities.isEmpty
+                ? 0.0
+                : Double(intensities.reduce(0, +)) / Double(intensities.count)
+            let maxVal = intensities.max() ?? 0
+
+            return SongActivationAggregate(
+                title: key.title,
+                artist: key.artist,
+                count: songEvents.count,
+                averageIntensity: avg,
+                maxIntensity: maxVal
+            )
+        }
+        .sorted { $0.count > $1.count }
+    }
 }
 
-//
-// MARK: - Supabase loading
-//
+// MARK: - Data loading
 
 extension PatternsView {
     private func loadEvents() async {
