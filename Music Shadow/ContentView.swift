@@ -452,39 +452,63 @@ private struct ArchetypeTile: View {
     let archetype: ArchetypeSummary
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            ZStack {
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [.purple, .blue],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [.purple, .blue],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
                         )
-                    )
-                    .frame(width: 40, height: 40)
+                        .frame(width: 40, height: 40)
 
-                Image(systemName: "brain.head.profile")
-                    .foregroundColor(.white.opacity(0.85))
-                    .font(.system(size: 20, weight: .semibold))
+                    Image(systemName: "brain.head.profile")
+                        .foregroundColor(.white.opacity(0.85))
+                        .font(.system(size: 20, weight: .semibold))
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Shadow archetype")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundColor(MSTheme.secondaryText)
+
+                    Text(archetype.name)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(MSTheme.primaryText)
+
+                    Text(archetype.tagline)
+                        .font(.caption2)
+                        .foregroundColor(MSTheme.secondaryText.opacity(0.9))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer()
             }
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Shadow archetype")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundColor(MSTheme.secondaryText)
-
-                Text(archetype.name)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundColor(MSTheme.primaryText)
-
-                Text(archetype.tagline)
-                    .font(.caption2)
-                    .foregroundColor(MSTheme.secondaryText.opacity(0.9))
-                    .fixedSize(horizontal: false, vertical: true)
+            // Learn-more pill
+            NavigationLink {
+                ShadowArchetypeDetailView(currentName: archetype.name)
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "square.grid.2x2")
+                        .font(.caption2)
+                    Text("Meet the archetypes")
+                        .font(.caption2.weight(.semibold))
+                    Image(systemName: "chevron.right")
+                        .font(.caption2)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(
+                    Capsule()
+                        .fill(Color.white.opacity(0.07))
+                )
+                .foregroundColor(MSTheme.primaryText)
             }
-
-            Spacer()
+            .buttonStyle(.plain)
         }
         .padding(.vertical, 10)
         .padding(.horizontal, 14)
@@ -498,7 +522,6 @@ private struct ArchetypeTile: View {
         )
     }
 }
-
  // MARK: - Today’s Practice + Latest Reflection
 
 struct TodayPracticeCard: View {
@@ -569,11 +592,12 @@ struct LatestReflectionCard: View {
     }
 }
 
- // MARK: - Why this works
+
+// MARK: - Why this works
 
 struct WhyItWorksCard: View {
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             Text("Why this works")
                 .font(.headline)
                 .foregroundColor(MSTheme.secondaryText)
@@ -586,18 +610,26 @@ struct WhyItWorksCard: View {
             NavigationLink {
                 WhyItWorksView()
             } label: {
-                HStack(spacing: 6) {
+                HStack {
                     Text("Learn the science behind it")
+                        .font(.subheadline.weight(.semibold))
+
+                    Spacer()
+
                     Image(systemName: "chevron.right")
                         .font(.caption)
                 }
-                .font(.footnote.weight(.semibold))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding()
                 .background(
-                    Capsule()
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
                         .fill(Color.white.opacity(0.06))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .stroke(MSTheme.cardStroke, lineWidth: 1)
+                        )
                 )
+                .foregroundColor(MSTheme.primaryText)
             }
             .buttonStyle(.plain)
         }

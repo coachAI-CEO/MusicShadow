@@ -10,7 +10,7 @@ struct PatternsView: View {
     @State private var isLoading: Bool = true
     @State private var errorMessage: String?
 
-    // Daily radar toggle (notifications can hook in later)
+    // Daily radar toggle (notifications can hook here later)
     @State private var radarRemindersEnabled: Bool = false
 
     var body: some View {
@@ -40,7 +40,7 @@ struct PatternsView: View {
                             .foregroundColor(.red)
                             .font(.caption)
                     } else {
-                        // 1. Daily Emotional Radar
+                        // 1) Daily Emotional Radar
                         if !radarPoints.isEmpty {
                             DailyRadarCard(
                                 points: radarPoints,
@@ -48,12 +48,12 @@ struct PatternsView: View {
                             )
                         }
 
-                        // 2. Somatic map
+                        // 2) Somatic map
                         if !events.isEmpty {
                             SomaticMapCard(bodyCounts: bodyLocationCounts)
                         }
 
-                        // 3. Response patterns
+                        // 3) Response patterns
                         if !events.isEmpty {
                             ResponsePatternsCard(
                                 impulseCounts: impulseCounts,
@@ -61,22 +61,28 @@ struct PatternsView: View {
                             )
                         }
 
-                        // 4. Shadow Archetype snapshot
+                        // 4) Shadow Archetype snapshot
                         if let snapshot = archetypeSnapshot {
                             ShadowArchetypeSummaryCard(snapshot: snapshot)
                         }
 
-                        // 5. AI Themes snapshot
+                        // 5) AI Themes snapshot
                         if !insights.isEmpty {
                             AIThemesCard(insights: insights)
                         }
 
-                        // 6. Song Activation Analytics
-                        if !songAggregates.isEmpty {
-                            SongActivationCard(songs: songAggregates)
+                        // 6) Song Activation Analytics (summary card → full dashboard)
+                        if !songActivationAggregates.isEmpty {
+                            NavigationLink {
+                                SongAnalyticsView(events: events)
+                            } label: {
+                                SongActivationCard(songs: songActivationAggregates)
+                                    .contentShape(Rectangle()) // whole card tappable
+                            }
+                            .buttonStyle(.plain)
                         }
 
-                        // 7. Logged Triggers CTA
+                        // 7) Logged Triggers CTA
                         if !events.isEmpty {
                             NavigationLink {
                                 AllTriggersView(events: events)
@@ -96,7 +102,7 @@ struct PatternsView: View {
                                             )
                                     )
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(PlainButtonStyle())
                             .padding(.top, 4)
                         }
                     }
@@ -110,14 +116,14 @@ struct PatternsView: View {
             await loadEvents()
             await loadInsights()
         }
-        // For now this just logs; you can hook into notifications later.
         .onChange(of: radarRemindersEnabled) { newValue in
+            // Hook notifications later if you want
             print("Radar reminders toggled: \(newValue)")
         }
     }
 }
 
-// MARK: - 1) Daily Emotional Radar
+// MARK: - Daily Emotional Radar
 
 struct RadarDayPoint: Identifiable {
     let id = UUID()
@@ -163,30 +169,27 @@ struct DailyRadarCard: View {
             HStack(spacing: 10) {
                 ForEach(points) { point in
                     VStack(spacing: 4) {
-                        ZStack {
-                            Circle()
-                                .fill(Color.white.opacity(0.14))
-
-                            if point.isHigh {
-                                Circle()
-                                    .fill(
-                                        LinearGradient(
-                                            colors: [.purple, .blue],
-                                            startPoint: .top,
-                                            endPoint: .bottom
-                                        )
+                        Circle()
+                            .fill(
+                                point.isHigh
+                                ? AnyShapeStyle(
+                                    LinearGradient(
+                                        colors: [.purple, .blue],
+                                        startPoint: .top,
+                                        endPoint: .bottom
                                     )
-                            }
-                        }
-                        .frame(width: point.isToday ? 14 : 10,
-                               height: point.isToday ? 14 : 10)
-                        .overlay(
-                            Circle()
-                                .stroke(
-                                    point.isToday ? Color.white.opacity(0.9) : Color.clear,
-                                    lineWidth: 1
                                 )
-                        )
+                                : AnyShapeStyle(Color.white.opacity(0.14))
+                            )
+                            .frame(width: point.isToday ? 14 : 10,
+                                   height: point.isToday ? 14 : 10)
+                            .overlay(
+                                Circle()
+                                    .stroke(
+                                        point.isToday ? Color.white.opacity(0.9) : Color.clear,
+                                        lineWidth: 1
+                                    )
+                            )
 
                         Text(point.label)
                             .font(.caption2)
@@ -215,7 +218,7 @@ struct DailyRadarCard: View {
     }
 }
 
-// MARK: - 2) Somatic Map
+// MARK: - Somatic Map
 
 struct PatternCountItem: Identifiable {
     let id = UUID()
@@ -331,7 +334,7 @@ private func bodyEmoji(for label: String) -> String {
     }
 }
 
-// MARK: - 3) Response Patterns
+// MARK: - Response Patterns
 
 struct ResponsePatternsCard: View {
     let impulseCounts: [PatternCountItem]
@@ -407,7 +410,7 @@ struct ResponsePatternsCard: View {
     }
 }
 
-// MARK: - 4) Shadow Archetypes
+// MARK: - Shadow Archetypes
 
 enum ShadowArchetypeID: String, CaseIterable {
     case abandonedChild = "AbandonedChild"
@@ -554,8 +557,134 @@ extension ShadowArchetypeProfile {
         }
     }
 }
+// MARK: - 6) Song Activation Analytics (summary card)
 
-// MARK: - 5) AI Themes Card
+struct SongActivationAggregate: Identifiable {
+    let id = UUID()
+    let title: String
+    let artist: String
+    let count: Int
+    let averageIntensity: Double
+    let maxIntensity: Int
+}
+
+struct SongActivationCard: View {
+    let songs: [SongActivationAggregate]
+
+    private var primary: SongActivationAggregate? { songs.first }
+    private var secondary: SongActivationAggregate? {
+        songs.count > 1 ? songs[1] : nil
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Song activation analytics")
+                .font(.headline)
+                .foregroundColor(MSTheme.secondaryText)
+
+            Text("Which songs consistently light up your system.")
+                .font(.caption)
+                .foregroundColor(MSTheme.secondaryText.opacity(0.9))
+
+            if let primary {
+                primaryTile(primary)
+            }
+
+            if let secondary {
+                Divider()
+                    .background(MSTheme.cardStroke)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Also very active")
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(MSTheme.secondaryText)
+
+                    Text("\(secondary.title) — \(secondary.artist)")
+                        .font(.footnote)
+                        .foregroundColor(MSTheme.primaryText)
+
+                    Text("\(secondary.count)x spikes · max \(secondary.maxIntensity)/10")
+                        .font(.caption2)
+                        .foregroundColor(MSTheme.secondaryText.opacity(0.9))
+                }
+            }
+
+            if songs.count > 2 {
+                Text("+\(songs.count - 2) more songs showing up in your shadow.")
+                    .font(.caption2)
+                    .foregroundColor(MSTheme.secondaryText.opacity(0.8))
+                    .padding(.top, 4)
+            }
+        }
+        .shadowCard()
+    }
+
+    private func primaryTile(_ song: SongActivationAggregate) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [.purple, .blue],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 40, height: 40)
+
+                    Image(systemName: "music.quarternote.3")
+                        .foregroundColor(.white)
+                        .font(.system(size: 20, weight: .semibold))
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Most activated song")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundColor(MSTheme.secondaryText)
+
+                    Text(song.title)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(MSTheme.primaryText)
+
+                    Text(song.artist)
+                        .font(.caption2)
+                        .foregroundColor(MSTheme.secondaryText.opacity(0.9))
+                }
+
+                Spacer()
+            }
+
+            HStack(spacing: 10) {
+                statPill(label: "Spikes", value: "\(song.count)x")
+                statPill(
+                    label: "Avg intensity",
+                    value: String(format: "%.1f/10", song.averageIntensity)
+                )
+                statPill(label: "Max", value: "\(song.maxIntensity)/10")
+            }
+        }
+        .padding(.top, 4)
+    }
+
+    private func statPill(label: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label.uppercased())
+                .font(.caption2.weight(.semibold))
+                .foregroundColor(.white.opacity(0.75))
+            Text(value)
+                .font(.caption)
+                .foregroundColor(.white)
+        }
+        .padding(.vertical, 6)
+        .padding(.horizontal, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.white.opacity(0.08))
+        )
+    }
+}
+// MARK: - AI Themes Card
 
 struct AIThemesCard: View {
     let insights: [ShadowInsight]
@@ -704,137 +833,11 @@ struct AIThemesCard: View {
     }
 }
 
-// MARK: - 6) Song Activation Analytics
-
-struct SongActivationAggregate: Identifiable {
-    let id = UUID()
-    let title: String
-    let artist: String
-    let count: Int
-    let averageIntensity: Double
-    let maxIntensity: Int
-}
-
-struct SongActivationCard: View {
-    let songs: [SongActivationAggregate]
-
-    private var primary: SongActivationAggregate? { songs.first }
-    private var secondary: SongActivationAggregate? {
-        songs.count > 1 ? songs[1] : nil
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Song activation analytics")
-                .font(.headline)
-                .foregroundColor(MSTheme.secondaryText)
-
-            Text("Which songs consistently light up your system.")
-                .font(.caption)
-                .foregroundColor(MSTheme.secondaryText.opacity(0.9))
-
-            if let primary {
-                primaryTile(primary)
-            }
-
-            if let secondary {
-                Divider()
-                    .background(MSTheme.cardStroke)
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Also very active")
-                        .font(.caption.weight(.semibold))
-                        .foregroundColor(MSTheme.secondaryText)
-
-                    Text("\(secondary.title) — \(secondary.artist)")
-                        .font(.footnote)
-                        .foregroundColor(MSTheme.primaryText)
-
-                    Text("\(secondary.count)x spikes · max \(secondary.maxIntensity)/10")
-                        .font(.caption2)
-                        .foregroundColor(MSTheme.secondaryText.opacity(0.9))
-                }
-            }
-
-            if songs.count > 2 {
-                Text("+\(songs.count - 2) more songs showing up in your shadow.")
-                    .font(.caption2)
-                    .foregroundColor(MSTheme.secondaryText.opacity(0.8))
-                    .padding(.top, 4)
-            }
-        }
-        .shadowCard()
-    }
-
-    private func primaryTile(_ song: SongActivationAggregate) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 10) {
-                ZStack {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [.purple, .blue],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 40, height: 40)
-
-                    Image(systemName: "music.quarternote.3")
-                        .foregroundColor(.white)
-                        .font(.system(size: 20, weight: .semibold))
-                }
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Most activated song")
-                        .font(.caption2.weight(.semibold))
-                        .foregroundColor(MSTheme.secondaryText)
-
-                    Text(song.title)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundColor(MSTheme.primaryText)
-
-                    Text(song.artist)
-                        .font(.caption2)
-                        .foregroundColor(MSTheme.secondaryText.opacity(0.9))
-                }
-
-                Spacer()
-            }
-
-            HStack(spacing: 10) {
-                statPill(label: "Spikes", value: "\(song.count)x")
-                statPill(label: "Avg intensity",
-                         value: String(format: "%.1f/10", song.averageIntensity))
-                statPill(label: "Max", value: "\(song.maxIntensity)/10")
-            }
-        }
-        .padding(.top, 4)
-    }
-
-    private func statPill(label: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(label.uppercased())
-                .font(.caption2.weight(.semibold))
-                .foregroundColor(.white.opacity(0.75))
-            Text(value)
-                .font(.caption)
-                .foregroundColor(.white)
-        }
-        .padding(.vertical, 6)
-        .padding(.horizontal, 10)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.white.opacity(0.08))
-        )
-    }
-}
-
-// MARK: - Aggregations & Derived Data
+// MARK: - Derived Data & Aggregations
 
 extension PatternsView {
 
-    // Somatic / impulse / sensation
+    // Basic aggregates
     var bodyLocationCounts: [PatternCountItem] {
         aggregateCounts(events.compactMap { $0.body_location })
     }
@@ -920,6 +923,22 @@ extension PatternsView {
         return ShadowArchetypeSnapshot(primary: primary, secondary: secondary)
     }
 
+    // Map SongAnalytics aggregates → compact home card aggregates
+    var songActivationAggregates: [SongActivationAggregate] {
+        let aggregated = aggregateSongs(from: events)
+            .sorted { $0.count > $1.count }
+
+        return aggregated.map { song in
+            SongActivationAggregate(
+                title: song.title,
+                artist: song.artist,
+                count: song.count,
+                averageIntensity: song.averageIntensity,
+                maxIntensity: song.maxIntensity
+            )
+        }
+    }
+
     private func computeArchetypeScores(
         events: [SongEvent],
         insights: [ShadowInsight]
@@ -985,43 +1004,9 @@ extension PatternsView {
             .map { ShadowArchetypeScore(id: $0.key, score: $0.value) }
             .sorted { $0.score > $1.score }
     }
-
-    // Song Activation aggregation
-    var songAggregates: [SongActivationAggregate] {
-        guard !events.isEmpty else { return [] }
-
-        struct SongKey: Hashable {
-            let title: String
-            let artist: String
-        }
-
-        let grouped = Dictionary(grouping: events) { event in
-            SongKey(
-                title: event.song_title ?? "Unknown song",
-                artist: event.artist ?? "Unknown artist"
-            )
-        }
-
-        return grouped.map { key, songEvents in
-            let intensities = songEvents.compactMap { $0.intensity }
-            let avg = intensities.isEmpty
-                ? 0.0
-                : Double(intensities.reduce(0, +)) / Double(intensities.count)
-            let maxVal = intensities.max() ?? 0
-
-            return SongActivationAggregate(
-                title: key.title,
-                artist: key.artist,
-                count: songEvents.count,
-                averageIntensity: avg,
-                maxIntensity: maxVal
-            )
-        }
-        .sorted { $0.count > $1.count }
-    }
 }
 
-// MARK: - Data loading
+// MARK: - Data Loading
 
 extension PatternsView {
     private func loadEvents() async {

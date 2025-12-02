@@ -46,7 +46,7 @@ enum ShadowArchetype: String, CaseIterable, Identifiable {
         }
     }
 
-    /// A little more depth for the card body
+    /// Short paragraph for summary card
     var longDescription: String {
         switch self {
         case .abandonedChild:
@@ -65,6 +65,63 @@ enum ShadowArchetype: String, CaseIterable, Identifiable {
             return "This pattern reaches for charm, humour, or caretaking to stay liked and safe. Being deeply seen can feel exposing."
         }
     }
+}
+
+// MARK: - Rich details for the full-page view
+
+struct ShadowArchetypeDetail: Identifiable {
+    let id = UUID()
+    let archetype: ShadowArchetype
+    let growthInvitation: String
+    let deeperDescription: String
+    let typicalSpikes: String
+}
+
+extension ShadowArchetypeDetail {
+    static let all: [ShadowArchetypeDetail] = [
+        .init(
+            archetype: .abandonedChild,
+            growthInvitation: "Offer reassurance, warmth, and clear communication. Practices around self-soothing, attachment repair, and asking for what you need are especially powerful here.",
+            deeperDescription: "This part carries old experiences of disconnection, rejection, or being emotionally alone. Spikes often show up around closeness, texting, plans changing, or feeling ‘too much’.",
+            typicalSpikes: "Messages left on read, cancellations, someone seeming distant, or feeling like you’re not a priority."
+        ),
+        .init(
+            archetype: .loneWolf,
+            growthInvitation: "Experiment with letting trusted people in a little more. Tiny acts of asking for help, sharing feelings, or staying present when you want to bolt are big wins.",
+            deeperDescription: "This pattern learned that relying on others can be risky. Independence became armour. It often shows up as pulling away when things get vulnerable.",
+            typicalSpikes: "Conflict, expectations from others, needing to depend on someone, or feeling smothered."
+        ),
+        .init(
+            archetype: .overachiever,
+            growthInvitation: "Practice ‘good enough’ instead of perfect. Schedule rest on purpose, celebrate effort over outcome, and notice the part of you that is worthy even when you’re not producing.",
+            deeperDescription: "This pattern ties safety to doing and achieving. It tracks mistakes closely and can’t relax when there’s more to do.",
+            typicalSpikes: "Feedback, feeling behind, comparing yourself to others, or any sense of ‘failing’."
+        ),
+        .init(
+            archetype: .invisibleOne,
+            growthInvitation: "Play with taking up a tiny bit more space — sharing an opinion, asking for a preference, or letting your feelings be known to safe people.",
+            deeperDescription: "This pattern learned that being small or quiet was safer. It keeps needs hidden so you don’t become ‘too much’ or a burden.",
+            typicalSpikes: "Being talked over, not being invited, feeling forgotten, or watching others get attention."
+        ),
+        .init(
+            archetype: .protector,
+            growthInvitation: "Instead of fighting this part, thank it for trying to keep you safe. Then gently explore what it’s afraid would happen if it relaxed 5% today.",
+            deeperDescription: "This is your inner bodyguard. It’s scanning for danger and ready to shut feelings down or go on the offensive.",
+            typicalSpikes: "Criticism, perceived disrespect, chaos, or any hint that someone might hurt you or people you love."
+        ),
+        .init(
+            archetype: .mask,
+            growthInvitation: "Experiment with safe, tiny doses of realness — sharing one honest sentence more than usual or letting someone see you when you’re not ‘together’.",
+            deeperDescription: "This pattern curates what is shown and what is hidden. It protects softer parts from shame, judgement, or rejection.",
+            typicalSpikes: "High-stakes social situations, new groups, or any time you fear being judged."
+        ),
+        .init(
+            archetype: .performer,
+            growthInvitation: "Practice being valued just for existing, not for entertaining or fixing. Let yourself be quiet or messy with safe people.",
+            deeperDescription: "This pattern keeps things light, fun, or helpful so you stay appreciated and safe. Underneath, there’s often a fear of being boring, needy, or ‘too much’.",
+            typicalSpikes: "Tension in the room, someone else being upset, or silence where you’re not sure if you’re wanted."
+        )
+    ]
 }
 
 // MARK: - Score wrapper
@@ -107,7 +164,7 @@ struct ArchetypeEngine {
             }
 
             // Lone Wolf
-            if blob.containsAny(of: ["can only rely on myself", "others are unsafe", "don’t need anyone", "better alone"]) {
+            if blob.containsAny(of: ["can only rely on myself", "others are unsafe", "don’t need anyone", "dont need anyone", "better alone"]) {
                 bump(.loneWolf, by: 2)
             }
             if blob.containsAny(of: ["distance", "shut down", "withdraw", "pull away"]) {
@@ -118,7 +175,7 @@ struct ArchetypeEngine {
             if blob.containsAny(of: ["perform", "achieve", "perfect", "high standards", "failure is not allowed"]) {
                 bump(.overachiever, by: 2)
             }
-            if blob.containsAny(of: ["if i don’t", "need to prove", "never enough"]) {
+            if blob.containsAny(of: ["if i don’t", "if i dont", "need to prove", "never enough"]) {
                 bump(.overachiever, by: 1)
             }
 
@@ -126,7 +183,7 @@ struct ArchetypeEngine {
             if blob.containsAny(of: ["invisible", "not seen", "ignored", "overlooked", "fade into the background"]) {
                 bump(.invisibleOne, by: 2)
             }
-            if blob.containsAny(of: ["don’t take up space", "don’t want to bother", "stay quiet"]) {
+            if blob.containsAny(of: ["don’t take up space", "dont take up space", "don’t want to bother", "dont want to bother", "stay quiet"]) {
                 bump(.invisibleOne, by: 1)
             }
 
@@ -142,7 +199,7 @@ struct ArchetypeEngine {
             if blob.containsAny(of: ["hide feelings", "hide myself", "put on a face", "mask", "pretend"]) {
                 bump(.mask, by: 2)
             }
-            if blob.containsAny(of: ["people pleasing", "don’t show weakness", "keep it together"]) {
+            if blob.containsAny(of: ["people pleasing", "people-pleasing", "don’t show weakness", "keep it together"]) {
                 bump(.mask, by: 1)
             }
 
@@ -170,7 +227,7 @@ private extension String {
     }
 }
 
-// MARK: - UI Card
+// MARK: - Home Card (summary)
 
 struct ShadowArchetypeCard: View {
     let primary: ArchetypeScore?
@@ -231,7 +288,196 @@ struct ShadowArchetypeCard: View {
                     Spacer()
                 }
             }
+
+            // Learn more button → full archetype page
+            NavigationLink {
+                ShadowArchetypesView()
+            } label: {
+                HStack(spacing: 6) {
+                    Text("Explore all shadow archetypes")
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                }
+                .font(.caption.weight(.semibold))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(
+                    Capsule()
+                        .fill(Color.white.opacity(0.06))
+                )
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 4)
         }
         .shadowCard()
+    }
+}
+
+// MARK: - Full Archetypes Page
+
+struct ShadowArchetypesView: View {
+    @State private var selectedArchetypeID: ShadowArchetype.ID?
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+
+                // Hero
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Shadow archetypes")
+                        .font(.largeTitle.bold())
+                        .foregroundColor(MSTheme.primaryText)
+
+                    Text("A playful map of the patterns your triggers tend to cluster around. These are lenses, not boxes.")
+                        .font(.subheadline)
+                        .foregroundColor(MSTheme.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.top, 12)
+
+                // Science section
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("The science behind archetypes")
+                        .font(.headline)
+                        .foregroundColor(MSTheme.primaryText)
+
+                    Text("""
+These patterns are inspired by depth psychology (Carl Jung), parts-based models like Internal Family Systems (IFS), and modern nervous-system science.
+
+Instead of “who you are”, they describe how your system tends to protect you when it feels threatened or vulnerable.
+""")
+                        .font(.caption)
+                        .foregroundColor(MSTheme.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                // Which one feels most like you?
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Which one feels most like you lately?")
+                        .font(.headline)
+                        .foregroundColor(MSTheme.primaryText)
+
+                    Text("There’s no right answer. Let your body react — which card gives you a little pang of “ugh… that’s me”?")
+                        .font(.caption)
+                        .foregroundColor(MSTheme.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    if let selected = selectedArchetypeDetail {
+                        HStack(spacing: 8) {
+                            Text(selected.archetype.emoji)
+                            Text("You chose: \(selected.archetype.rawValue)")
+                                .font(.caption.weight(.semibold))
+                            Spacer()
+                        }
+                        .padding(8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .fill(Color.white.opacity(0.06))
+                        )
+                    }
+                }
+
+                // Archetype cards
+                VStack(spacing: 16) {
+                    ForEach(ShadowArchetypeDetail.all) { detail in
+                        ArchetypeDetailCard(
+                            detail: detail,
+                            isSelected: detail.archetype.id == selectedArchetypeID
+                        ) {
+                            selectedArchetypeID = detail.archetype.id
+                        }
+                    }
+                }
+            }
+            .padding(24)
+        }
+        .musicShadowBackground()
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var selectedArchetypeDetail: ShadowArchetypeDetail? {
+        ShadowArchetypeDetail.all.first { $0.archetype.id == selectedArchetypeID }
+    }
+}
+
+// MARK: - Detail Card
+
+private struct ArchetypeDetailCard: View {
+    let detail: ShadowArchetypeDetail
+    let isSelected: Bool
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 12) {
+                    ZStack {
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [.purple, .blue],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 46, height: 46)
+
+                        Text(detail.archetype.emoji)
+                            .font(.title2)
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(detail.archetype.rawValue)
+                            .font(.headline)
+                            .foregroundColor(MSTheme.primaryText)
+
+                        Text(detail.archetype.tagline)
+                            .font(.caption)
+                            .foregroundColor(MSTheme.secondaryText)
+                    }
+
+                    Spacer()
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(detail.deeperDescription)
+                        .font(.footnote)
+                        .foregroundColor(MSTheme.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Text("Typical spikes")
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(MSTheme.secondaryText)
+
+                    Text(detail.typicalSpikes)
+                        .font(.caption)
+                        .foregroundColor(MSTheme.secondaryText.opacity(0.95))
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Text("Growth invitation")
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(MSTheme.secondaryText)
+                        .padding(.top, 4)
+
+                    Text(detail.growthInvitation)
+                        .font(.caption)
+                        .foregroundColor(MSTheme.secondaryText.opacity(0.95))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 26, style: .continuous)
+                    .fill(Color.white.opacity(0.04))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 26, style: .continuous)
+                            .stroke(
+                                isSelected ? Color.purple.opacity(0.9) : MSTheme.cardStroke,
+                                lineWidth: isSelected ? 1.6 : 0.9
+                            )
+                    )
+            )
+        }
+        .buttonStyle(.plain)
     }
 }

@@ -144,27 +144,33 @@ private struct QuickStatsCard: View {
                 .font(.caption)
                 .foregroundColor(MSTheme.secondaryText.opacity(0.9))
 
-            HStack(spacing: 12) {
-                StatTile(
-                    icon: "bolt.heart",
-                    title: "Total triggers",
-                    value: "\(stats.totalTriggers)"
-                )
-                StatTile(
-                    icon: "music.note.list",
-                    title: "Unique songs",
-                    value: "\(stats.uniqueSongs)"
-                )
-                StatTile(
-                    icon: "person.2.wave.2",
-                    title: "Artists",
-                    value: "\(stats.uniqueArtists)"
-                )
-                StatTile(
-                    icon: "waveform.path.ecg",
-                    title: "Avg intensity",
-                    value: String(format: "%.1f", stats.averageIntensity)
-                )
+            // 2×2 grid so labels don’t get chopped
+            VStack(spacing: 10) {
+                HStack(spacing: 12) {
+                    StatTile(
+                        icon: "bolt.heart",
+                        title: "Triggers",
+                        value: "\(stats.totalTriggers)"
+                    )
+                    StatTile(
+                        icon: "music.note.list",
+                        title: "Songs",
+                        value: "\(stats.uniqueSongs)"
+                    )
+                }
+
+                HStack(spacing: 12) {
+                    StatTile(
+                        icon: "person.2",
+                        title: "Artists",
+                        value: "\(stats.uniqueArtists)"
+                    )
+                    StatTile(
+                        icon: "waveform.path.ecg",
+                        title: "Avg 1–10",
+                        value: String(format: "%.1f", stats.averageIntensity)
+                    )
+                }
             }
         }
         .shadowCard()
@@ -182,9 +188,12 @@ private struct StatTile: View {
                 Image(systemName: icon)
                     .font(.caption2)
                     .foregroundColor(.white.opacity(0.9))
-                Text(title.uppercased())
+
+                Text(title)
                     .font(.caption2.weight(.semibold))
                     .foregroundColor(.white.opacity(0.8))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
             }
 
             Text(value)
@@ -401,17 +410,40 @@ private struct Chip: View {
 
 // MARK: - Aggregation Helpers
 
-private func aggregateSongs(from events: [SongEvent]) -> [SongAggregate] {
+// Normalization helpers so "Sleep Token" and "sleep token" are treated as one thing.
+
+/// Lowercases + trims for use as a dictionary/set key.
+private func normalizeKey(_ raw: String?, fallback: String) -> String {
+    let base = (raw?.trimmingCharacters(in: .whitespacesAndNewlines) ?? fallback)
+    return base.lowercased()
+}
+
+/// Picks a nice display value from a bunch of raw strings:
+/// – prefers the first non-empty trimmed string
+/// – falls back to the given label if nothing good is found.
+private func canonicalDisplay(from values: [String?], fallback: String) -> String {
+    for value in values {
+        if let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !trimmed.isEmpty {
+            return trimmed
+        }
+    }
+    return fallback
+}
+
+func aggregateSongs(from events: [SongEvent]) -> [SongAggregate] {
     let iso = ISO8601DateFormatter()
 
+    // Group by normalized song title + artist so case/spacing differences
+    // don't create duplicates.
     let grouped = Dictionary(grouping: events) { event in
         SongKey(
-            title: event.song_title ?? "Unknown song",
-            artist: event.artist ?? "Unknown artist"
+            title: normalizeKey(event.song_title, fallback: "unknown song"),
+            artist: normalizeKey(event.artist, fallback: "unknown artist")
         )
     }
 
-    return grouped.map { key, eventsForSong in
+    return grouped.map { _, eventsForSong in
         let intensities = eventsForSong.compactMap { $0.intensity }
 
         let avg = intensities.isEmpty
@@ -426,9 +458,19 @@ private func aggregateSongs(from events: [SongEvent]) -> [SongAggregate] {
             .sorted(by: >)
             .first
 
+        let displayTitle = canonicalDisplay(
+            from: eventsForSong.map { $0.song_title },
+            fallback: "Unknown song"
+        )
+
+        let displayArtist = canonicalDisplay(
+            from: eventsForSong.map { $0.artist },
+            fallback: "Unknown artist"
+        )
+
         return SongAggregate(
-            title: key.title,
-            artist: key.artist,
+            title: displayTitle,
+            artist: displayArtist,
             count: eventsForSong.count,
             averageIntensity: avg,
             maxIntensity: maxVal,
@@ -438,16 +480,26 @@ private func aggregateSongs(from events: [SongEvent]) -> [SongAggregate] {
 }
 
 private func aggregateArtists(from songs: [SongAggregate]) -> [ArtistAggregate] {
-    let grouped = Dictionary(grouping: songs) { $0.artist }
+    // Group by normalized artist key so "Sleep Token" and "sleep token"
+    // roll up into a single artist row.
+    let grouped = Dictionary(grouping: songs) {
+        normalizeKey($0.artist, fallback: "unknown artist")
+    }
 
-    return grouped.map { artist, items in
+    return grouped.map { _, items in
         let total = items.reduce(0) { $0 + $1.count }
+
         let avg = items.isEmpty
             ? 0.0
             : items.reduce(0.0) { $0 + $1.averageIntensity } / Double(items.count)
 
+        let displayArtist = canonicalDisplay(
+            from: items.map { $0.artist },
+            fallback: "Unknown artist"
+        )
+
         return ArtistAggregate(
-            artist: artist,
+            artist: displayArtist,
             totalTriggers: total,
             averageIntensity: avg
         )
@@ -460,21 +512,25 @@ private func makeQuickStats(from events: [SongEvent]) -> QuickStats {
         ? 0.0
         : Double(intensities.reduce(0, +)) / Double(intensities.count)
 
+    // Unique songs keyed by normalized title + artist.
     let songKeys: Set<SongKey> = Set(
         events.map {
             SongKey(
-                title: $0.song_title ?? "Unknown song",
-                artist: $0.artist ?? "Unknown artist"
+                title: normalizeKey($0.song_title, fallback: "unknown song"),
+                artist: normalizeKey($0.artist, fallback: "unknown artist")
             )
         }
     )
 
-    let artists: Set<String> = Set(events.compactMap { $0.artist ?? "Unknown artist" })
+    // Unique artists keyed by normalized artist name.
+    let artistKeys: Set<String> = Set(
+        events.map { normalizeKey($0.artist, fallback: "unknown artist") }
+    )
 
     return QuickStats(
         totalTriggers: events.count,
         uniqueSongs: songKeys.count,
-        uniqueArtists: artists.count,
+        uniqueArtists: artistKeys.count,
         averageIntensity: avg
     )
 }
@@ -487,8 +543,8 @@ private func makeIntensityBuckets(from events: [SongEvent]) -> [IntensityBucket]
     }
 
     return [
-        IntensityBucket(label: "Soft 1–3", range: 1...3, count: count(in: 1...3)),
-        IntensityBucket(label: "Medium 4–7", range: 4...7, count: count(in: 4...7)),
+        IntensityBucket(label: "Soft 1–3",    range: 1...3,  count: count(in: 1...3)),
+        IntensityBucket(label: "Medium 4–7",  range: 4...7,  count: count(in: 4...7)),
         IntensityBucket(label: "Intense 8–10", range: 8...10, count: count(in: 8...10))
     ]
 }
@@ -510,17 +566,18 @@ private func makeTimeOfDayBuckets(from events: [SongEvent]) -> [TimeOfDayBucket]
     for event in events {
         guard let h = hour(for: event) else { continue }
         switch h {
-        case 0..<6: night += 1
-        case 6..<12: morning += 1
+        case 0..<6:   night += 1
+        case 6..<12:  morning += 1
         case 12..<18: afternoon += 1
-        default: evening += 1
+        default:      evening += 1
         }
     }
 
     return [
-        TimeOfDayBucket(label: "Night", icon: "🌙", count: night),
-        TimeOfDayBucket(label: "Morning", icon: "🌅", count: morning),
+        TimeOfDayBucket(label: "Night",     icon: "🌙", count: night),
+        TimeOfDayBucket(label: "Morning",   icon: "🌅", count: morning),
         TimeOfDayBucket(label: "Afternoon", icon: "🌤", count: afternoon),
-        TimeOfDayBucket(label: "Evening", icon: "🌇", count: evening)
+        TimeOfDayBucket(label: "Evening",   icon: "🌇", count: evening)
     ]
 }
+
