@@ -201,7 +201,7 @@ struct AuthView: View {
     // MARK: - SESSION CHECK
     private func checkExistingSession() async {
         let client = SupabaseClientManager.shared.client
-        if client.auth.currentSession != nil {
+        if (try? await client.auth.session) != nil {
             await MainActor.run {
                 isLoggedIn = true
             }

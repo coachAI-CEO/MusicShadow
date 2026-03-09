@@ -16,6 +16,7 @@ struct SongEvent: Identifiable, Decodable {
     let somatic_type: String?
     let impulse: String?
     let intensity: Int?
+    let valence: String?
 
     // Guided journal
     let body_report: String?
@@ -28,4 +29,14 @@ struct SongEvent: Identifiable, Decodable {
 
     // Free-form journal
     let free_journal: String?
+
+    let share_with_partner: Bool?
+    let partner_share_level: String?
+    let source_type: String?
+    let source_context: String?
+    let ai_reason: String?
+
+    var isPartnerShareLevelMinimal: Bool {
+        (partner_share_level ?? "").lowercased() == "minimal"
+    }
 }

@@ -1726,7 +1726,7 @@ private func relativeDateString(from date: Date) -> String {
 
 // MARK: - Aggregation Helpers
 
-private func aggregateSongs(from events: [SongEvent]) -> [SongAggregate] {
+func aggregateSongs(from events: [SongEvent]) -> [SongAggregate] {
     let iso = ISO8601DateFormatter()
     iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
 

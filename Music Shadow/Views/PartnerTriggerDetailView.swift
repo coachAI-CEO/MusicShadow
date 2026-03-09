@@ -4,7 +4,7 @@ import Supabase
 
 /// Read-only partner view for a shared trigger.
 /// Displays content based on partner_share_level:
-/// - MINIMAL: song/artist/date/valence/intensity/timestamp_sec + ai_reason + AI reflection summary
+/// - MINIMAL: song/artist/date/valence/intensity/timestamp_seconds + ai_reason + AI reflection summary
 /// - FULL: adds somatic + selected journal fields (never free_journal unless explicitly included)
 struct PartnerTriggerDetailView: View {
     let event: SongEvent
@@ -177,8 +177,8 @@ private struct PartnerSongInfoCard: View {
                     .foregroundColor(MSTheme.secondaryText)
             }
             
-            // Show timestamp_sec if available
-            if let ts = event.timestamp_sec {
+            // Show timestamp_seconds if available
+            if let ts = event.timestamp_seconds {
                 Text("Spike around \(formattedTime(ts)) into the track")
                     .font(.caption2)
                     .foregroundColor(MSTheme.secondaryText.opacity(0.9))

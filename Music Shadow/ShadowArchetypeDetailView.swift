@@ -80,7 +80,8 @@ private let allArchetypeInfos: [ShadowArchetypeInfo] = [
     )
 ]
 
-struct ShadowArchetypeDetailView: View {
+/// Overview of all archetypes (optional highlight by name). Single-archetype detail is in Views/ContentView.swift.
+struct ShadowArchetypeOverviewView: View {
     /// Optional current archetype name to highlight.
     let currentName: String?
 

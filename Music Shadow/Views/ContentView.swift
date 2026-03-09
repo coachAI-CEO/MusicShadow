@@ -17,93 +17,156 @@ struct ContentView: View {
     var body: some View {
         NavigationStack(path: $navigationPath) {
             ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    
-                    // HERO
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack(spacing: 10) {
-                            MusicShadowEmblem(size: 30)
-                            
-                            Text("Music Shadow")
-                                .font(.largeTitle.bold())
-                                .foregroundColor(MSTheme.primaryText)
-                        }
-                        
-                        Text("Log the songs that move you. Watch the patterns underneath.")
-                            .font(.footnote)
-                            .foregroundColor(MSTheme.secondaryText)
+                VStack(spacing: MSTheme.Spacing.lg) {
+                    HeroHeaderCard(
+                        title: "Music Shadow",
+                        subtitle: "Log the songs that move you. Watch the patterns underneath."
+                    )
+                    .padding(.horizontal, 24)
+                    .padding(.top, 2)
+
+                    if let snapshot = shadowWeatherSnapshot {
+                        ShadowWeatherCard(snapshot: snapshot)
+                            .padding(.horizontal, 24)
                     }
-                    .padding(.top, 12)
-                    
-                    if isLoading {
-                        VStack(spacing: 20) {
-                            EtherealLoadingView()
-                                .frame(height: 300)
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .padding(.top, 40)
-                    } else if let errorMessage {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(errorMessage)
-                                .foregroundColor(.red)
-                                .font(.caption)
-                            
-                            Button {
-                                Task {
-                                    await loadEvents()
-                                    await loadInsights()
+
+                    // PROGRESS / ERROR / EMPTY GATEWAY
+                    Group {
+                        if isLoading {
+                            SectionContainer {
+                                VStack(spacing: 20) {
+                                    EtherealLoadingView()
+                                        .frame(height: 220)
+                                    Text("Gathering your shadow map…")
+                                        .font(.caption)
+                                        .foregroundColor(MSTheme.secondaryText)
                                 }
-                            } label: {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "arrow.clockwise")
-                                        .font(.caption2)
-                                    Text("Retry")
-                                        .font(.caption.weight(.semibold))
-                                }
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .background(
-                                    Capsule()
-                                        .fill(Color.white.opacity(0.08))
-                                )
-                                .foregroundColor(MSTheme.primaryText)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, MSTheme.Spacing.md)
                             }
-                            .buttonStyle(.plain)
+                        } else if let errorMessage {
+                            SectionContainer {
+                                VStack(alignment: .leading, spacing: 10) {
+                                    Text(errorMessage)
+                                        .foregroundColor(.red)
+                                        .font(.caption)
+                                    Button {
+                                        Task {
+                                            await loadEvents()
+                                            await loadInsights()
+                                        }
+                                    } label: {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: "arrow.clockwise").font(.caption2)
+                                            Text("Retry").font(.caption.weight(.semibold))
+                                        }
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 6)
+                                        .background(Capsule().fill(Color.white.opacity(0.08)))
+                                        .foregroundColor(MSTheme.primaryText)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        } else if events.isEmpty && insights.isEmpty {
+                            SectionContainer {
+                                VStack(spacing: 12) {
+                                    Text("No activations yet")
+                                        .font(.subheadline)
+                                        .foregroundColor(MSTheme.secondaryText)
+                                    Button {
+                                        Task {
+                                            DataCache.shared.invalidateAll()
+                                            await loadEvents()
+                                            await loadInsights()
+                                        }
+                                    } label: {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: "arrow.clockwise")
+                                            Text("Refresh")
+                                        }
+                                        .font(.subheadline.weight(.medium))
+                                        .foregroundColor(MSTheme.Colors.accentPrimary)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, MSTheme.Spacing.md)
+                            }
                         }
-                        .padding(.top, 16)
-                    } else {
-                        // MARK: 1. Quick Stats Ribbon (each pill navigates)
-                        QuickStatsRibbon(
-                            totalTriggers: events.count,
-                            thisWeekCount: eventsThisWeek.count,
-                            primaryArchetype: patternsGlanceSnapshot.archetype?.archetype.rawValue,
-                            onTotalTap: { navigationPath.append("allTriggers") },
-                            onThisWeekTap: { navigationPath.append("allTriggers") },
-                            onArchetypeTap: { navigationPath.append("patterns") }
-                        )
-                        .padding(.bottom, 8)
-                        
-                        // MARK: 2. Featured Insight (if available)
+                    }
+
+                    if !isLoading && errorMessage == nil {
+                        SectionContainer(spacing: MSTheme.Spacing.sm) {
+                            SectionHeader(title: "At a Glance")
+                            QuickStatsRibbon(
+                                totalTriggers: events.count,
+                                thisWeekCount: eventsThisWeek.count,
+                                primaryArchetype: patternsGlanceSnapshot.archetype?.archetype.rawValue,
+                                onTotalTap: { navigationPath.append("allTriggers") },
+                                onThisWeekTap: { navigationPath.append("allTriggers") },
+                                onArchetypeTap: { navigationPath.append("patterns") }
+                            )
+                        }
+
+                        // FEATURED INSIGHT with leading badge style header
                         if let featuredInsight = selectFeaturedInsight() {
-                            FeaturedInsightCard(insight: featuredInsight) {
-                                // Navigate to insight detail
-                                if let event = events.first(where: { $0.id == featuredInsight.event_id }) {
-                                    navigationPath.append(event.id.uuidString)
-                                }
-                            }
-                        }
-                        
-                        // MARK: 3. Pattern Highlights
-                        let highlights = PatternHighlight.generate(from: events, insights: insights)
-                        if !highlights.isEmpty {
-                            VStack(alignment: .leading, spacing: 8) {
-                                HStack {
-                                    Text("Patterns We're Noticing")
+                            SectionContainer(spacing: MSTheme.Spacing.sm) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "star.fill")
+                                        .font(.caption.weight(.bold))
+                                        .foregroundColor(MSTheme.Colors.accentPrimary)
+                                    Text("Insight Spotlight")
                                         .font(MSTheme.Typography.headline)
                                         .foregroundColor(MSTheme.Colors.primaryText)
-                                    
                                     Spacer()
-                                    
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundColor(MSTheme.secondaryText)
+                                }
+                                FeaturedInsightCard(insight: featuredInsight) {
+                                    if let event = events.first(where: { $0.id == featuredInsight.event_id }) {
+                                        navigationPath.append(event.id.uuidString)
+                                    }
+                                }
+                            }
+                        }
+
+                        // THIS WEEK + BODY SNAPSHOT
+                        if !events.isEmpty {
+                            SectionContainer(spacing: MSTheme.Spacing.sm) {
+                                HStack {
+                                    SectionHeader(title: "Patterns We're Noticing")
+                                    Spacer(minLength: 0)
+                                }
+                                VStack(alignment: .leading, spacing: 12) {
+                                    if eventsThisWeek.count > 0 {
+                                        SummaryCard(
+                                            icon: "checkmark.circle.fill",
+                                            iconColor: .green,
+                                            title: "You've logged \(eventsThisWeek.count) trigger\(eventsThisWeek.count == 1 ? "" : "s") this week",
+                                            subtitle: "That's self-awareness in action"
+                                        )
+                                    }
+                                    if let topBody = patternsGlanceSnapshot.topBody {
+                                        SummaryCard(
+                                            icon: "figure.arms.open",
+                                            iconColor: MSTheme.Colors.accentPrimary,
+                                            title: "Most of your activations land in your \(topBody.label.capitalized)",
+                                            subtitle: "\(topBody.count) times — this is where your body holds activation"
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // PATTERN HIGHLIGHTS (show 2 by default)
+                        let highlights = PatternHighlight.generate(from: events, insights: insights)
+                        if !highlights.isEmpty {
+                            SectionContainer(spacing: MSTheme.Spacing.sm) {
+                                HStack {
+                                    SectionHeader(title: "Patterns we're noticing")
+                                    Spacer()
                                     if highlights.count > 2 {
                                         Button {
                                             withAnimation(.easeInOut(duration: 0.2)) {
@@ -118,92 +181,79 @@ struct ContentView: View {
                                         .buttonStyle(.plain)
                                     }
                                 }
-                                .padding(.horizontal, MSTheme.Spacing.md)
-                                
-                                let displayedPatterns: [PatternHighlight] = patternsExpanded
-                                    ? highlights
-                                    : Array(highlights.prefix(2))
+                                let displayedPatterns: [PatternHighlight] = patternsExpanded ? highlights : Array(highlights.prefix(2))
                                 ForEach(displayedPatterns) { highlight in
                                     PatternHighlightCard(highlight: highlight, onTap: {
                                         navigationPath.append("patterns")
                                     })
-                                    .padding(.horizontal, MSTheme.Spacing.md)
                                 }
                             }
                         }
-                        
-                        // MARK: 4. Quick Actions Grid
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Quick Actions")
-                                .font(MSTheme.Typography.headline)
-                                .foregroundColor(MSTheme.Colors.primaryText)
-                                .padding(.horizontal, MSTheme.Spacing.md)
-                            
+
+                        // QUICK ACTIONS
+                        SectionContainer(spacing: MSTheme.Spacing.sm) {
+                            SectionHeader(title: "Quick Actions")
                             QuickActionsGrid(
-                                onBrowseTriggers: {
-                                    navigationPath.append("allTriggers")
-                                },
-                                onSongAnalytics: {
-                                    navigationPath.append("songAnalytics")
-                                },
-                                onMyArchetypes: {
-                                    navigationPath.append("patterns")
-                                },
-                                onTimeline: {
-                                    navigationPath.append("patterns")
-                                }
+                                onBrowseTriggers: { navigationPath.append("allTriggers") },
+                                onSongAnalytics: { navigationPath.append("songAnalytics") },
+                                onMyArchetypes: { navigationPath.append("archetypes") },
+                                onTimeline: { navigationPath.append("timeline") }
                             )
-                            .padding(.horizontal, MSTheme.Spacing.md)
                         }
-                        
-                        // MARK: 5. Recent Activity
-                        RecentActivitySection(
-                            events: events,
-                            maxItems: 3,
-                            onViewAll: {
-                                navigationPath.append("allTriggers")
+
+                        // RECENT ACTIVITY
+                        SectionContainer(spacing: MSTheme.Spacing.sm) {
+                            HStack {
+                                SectionHeader(title: "Recent Activity")
+                                Spacer()
+                                Button {
+                                    navigationPath.append("allTriggers")
+                                } label: {
+                                    Text("View All")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundColor(MSTheme.Colors.accentPrimary)
+                                }
+                                .buttonStyle(.plain)
                             }
-                        )
-                        .padding(.horizontal, MSTheme.Spacing.md)
-                        
-                        // MARK: 6. Shadow archetype (HERO - visual anchor)
+                            RecentActivitySection(
+                                events: events,
+                                maxItems: 3,
+                                onViewAll: { navigationPath.append("allTriggers") }
+                            )
+                        }
+
+                        // HERO ARCHETYPE
                         if let archetype = patternsGlanceSnapshot.archetype {
-                            NavigationLink {
-                                ShadowArchetypeDetailView(archetype: archetype.archetype)
-                            } label: {
-                                HeroArchetypeCard(archetype: archetype)
+                            SectionContainer {
+                                NavigationLink { ShadowArchetypeDetailView(archetype: archetype.archetype) } label: {
+                                    HeroArchetypeCard(archetype: archetype)
+                                }
+                                .buttonStyle(.plain)
                             }
-                            .buttonStyle(.plain)
-                            .padding(.vertical, 8)
                         }
                     }
-                    
+
                     // FOOTER
-                    Text("Every track you log is a step toward knowing your shadow.")
-                        .font(.footnote)
-                        .foregroundColor(MSTheme.secondaryText)
-                        .padding(.top, 4)
-                        .padding(.horizontal, MSTheme.Spacing.md)
+                    SectionContainer {
+                        Text("Every track you log is a step toward knowing your shadow.")
+                            .font(.footnote)
+                            .foregroundColor(MSTheme.secondaryText)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                 }
-                .padding(.vertical, 24)
+                .padding(.vertical, MSTheme.Spacing.md)
             }
             .musicShadowBackground()
             .navigationTitle("Music Shadow")
             .navigationBarTitleDisplayMode(.inline)
-            // FAB for logging new triggers
-            .floatingActionButton {
-                showNewTrigger = true
-            }
+            .floatingActionButton { showNewTrigger = true }
             .sheet(isPresented: $showNewTrigger) {
-                // Refresh data when sheet is dismissed
                 Task {
                     await loadEvents()
                     await loadInsights()
                 }
             } content: {
-                NavigationStack {
-                    NewTriggerView()
-                }
+                NavigationStack { NewTriggerView() }
             }
             .task {
                 await loadEvents()
@@ -215,13 +265,11 @@ struct ContentView: View {
                 await loadInsights()
             }
             .onReceive(NotificationCenter.default.publisher(for: .navigateToPatternsView)) { _ in
-                // Add a small delay to ensure the dismiss animation completes
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                     navigationPath.append("patterns")
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: .musicShadowDataErased)) { _ in
-                // Reload data after erasure
                 Task {
                     await loadEvents()
                     await loadInsights()
@@ -235,10 +283,12 @@ struct ContentView: View {
                     AllTriggersView(events: events)
                 case "songAnalytics":
                     SongAnalyticsView(events: events)
+                case "archetypes":
+                    ArchetypesView(events: events, insights: insights)
+                case "timeline":
+                    TriggerTimelineView(events: events)
                 default:
-                    // Try to navigate to trigger detail by ID
-                    if let eventId = UUID(uuidString: destination),
-                       let event = events.first(where: { $0.id == eventId }) {
+                    if let eventId = UUID(uuidString: destination), let event = events.first(where: { $0.id == eventId }) {
                         TriggerDetailView(event: event)
                     }
                 }
@@ -246,20 +296,14 @@ struct ContentView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button {
-                        if !navigationPath.isEmpty {
-                            navigationPath = NavigationPath()
-                        }
-                    } label: {
-                        MusicShadowEmblem(size: 24)
-                    }
+                        if !navigationPath.isEmpty { navigationPath = NavigationPath() }
+                    } label: { MusicShadowEmblem(size: 24) }
                     .buttonStyle(.plain)
                     .accessibilityLabel("Home")
                     .accessibilityHint("Return to dashboard")
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    NavigationLink {
-                        SettingsView()
-                    } label: {
+                    NavigationLink { SettingsView() } label: {
                         Image(systemName: "gearshape.fill")
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(MSTheme.secondaryText)
@@ -267,6 +311,112 @@ struct ContentView: View {
                 }
             }
         }
+        .withNetworkStatusBanner()
+    }
+}
+
+// MARK: - Section helpers
+private struct SectionContainer<Content: View>: View {
+    var spacing: CGFloat = MSTheme.Spacing.md
+    @ViewBuilder var content: () -> Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: spacing) {
+            content()
+        }
+        .padding(.vertical, MSTheme.Spacing.md)
+        .padding(.horizontal, MSTheme.Spacing.md)
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(Color.white.opacity(0.04))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(MSTheme.cardStroke, lineWidth: 0.8)
+        )
+        .padding(.horizontal, MSTheme.Spacing.md)
+    }
+}
+
+private struct SectionHeader: View {
+    let title: String
+    var body: some View {
+        Text(title)
+            .font(MSTheme.Typography.headline)
+            .foregroundColor(MSTheme.Colors.primaryText)
+    }
+}
+
+private struct HeroHeaderCard: View {
+    let title: String
+    let subtitle: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 12) {
+                MusicShadowEmblem(size: 36)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundColor(MSTheme.primaryText)
+                    Text(subtitle)
+                        .font(.footnote)
+                        .foregroundColor(MSTheme.secondaryText)
+                        .lineLimit(1)
+                }
+                Spacer()
+            }
+        }
+        .padding(.vertical, MSTheme.Spacing.sm)
+        .padding(.horizontal, MSTheme.Spacing.md)
+        .background(
+            RoundedRectangle(cornerRadius: MSTheme.CornerRadius.xl, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            MSTheme.Colors.accentPrimary.opacity(0.18),
+                            MSTheme.cardBackground
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: MSTheme.CornerRadius.xl, style: .continuous)
+                .stroke(MSTheme.cardStroke, lineWidth: 1)
+        )
+    }
+}
+
+private struct ShadowWeatherCard: View {
+    let snapshot: ShadowWeatherSnapshot
+
+    var body: some View {
+        HStack(alignment: .top, spacing: MSTheme.Spacing.md) {
+            Text(snapshot.emoji)
+                .font(.system(size: 28))
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Shadow Weather - \(snapshot.title)")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(MSTheme.primaryText)
+                Text(snapshot.description)
+                    .font(.footnote)
+                    .foregroundColor(MSTheme.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer()
+        }
+        .padding(.vertical, MSTheme.Spacing.md)
+        .padding(.horizontal, MSTheme.Spacing.lg)
+        .background(
+            RoundedRectangle(cornerRadius: MSTheme.CornerRadius.xl, style: .continuous)
+                .fill(MSTheme.cardBackground)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: MSTheme.CornerRadius.xl, style: .continuous)
+                .stroke(MSTheme.cardStroke, lineWidth: 1)
+        )
     }
 }
 
@@ -471,11 +621,8 @@ struct HeroArchetypeCard: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 16) {
-            Image(archetype.archetype.iconName)
-                .resizable()
-                .renderingMode(.template)
-                .foregroundColor(MSTheme.primaryText)
-                .scaledToFit()
+            Text(archetype.archetype.emoji)
+                .font(.system(size: 44))
                 .frame(width: 64, height: 64)
 
             VStack(alignment: .leading, spacing: 6) {
@@ -826,7 +973,7 @@ struct WhyItWorksCard: View {
 private extension ContentView {
     func loadEvents() async {
         let client = SupabaseClientManager.shared.client
-        guard let session = client.auth.currentSession else {
+        guard let session = try? await client.auth.session else {
             await MainActor.run {
                 errorMessage = "No active user session."
                 isLoading = false
@@ -881,7 +1028,7 @@ private extension ContentView {
 
     func loadInsights() async {
         let client = SupabaseClientManager.shared.client
-        guard let session = client.auth.currentSession else { return }
+        guard let session = try? await client.auth.session else { return }
         let userId = session.user.id
 
         // Check cache first (only for this user)
@@ -960,4 +1107,8 @@ private extension ContentView {
         // Otherwise return most recent
         return insights.first
     }
+}
+
+#Preview {
+    ContentView()
 }

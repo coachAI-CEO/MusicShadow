@@ -11,6 +11,10 @@ final class SupabaseClientManager {
     let supabaseKey: String
     let client: SupabaseClient
 
+    /// In-flight generate_insight calls by event_id (Phase 4)
+    private var insightGenerationInFlight: Set<String> = []
+    private let insightQueue = DispatchQueue(label: "SupabaseClientManager.insight")
+
     private init() {
         // 1) Project URL  (Settings → API → Project URL)
         supabaseURL = URL(string: "https://ohpgcnozjmtguffrmzgn.supabase.co")!
@@ -34,5 +38,20 @@ final class SupabaseClientManager {
             .appendingPathComponent("functions")
             .appendingPathComponent("v1")
             .appendingPathComponent(name)
+    }
+
+    /// Returns true if this event_id was not already in-flight (Phase 4)
+    func markInsightGenerationStarted(for eventId: String) -> Bool {
+        insightQueue.sync {
+            guard !insightGenerationInFlight.contains(eventId) else { return false }
+            insightGenerationInFlight.insert(eventId)
+            return true
+        }
+    }
+
+    func markInsightGenerationCompleted(for eventId: String) {
+        insightQueue.sync {
+            insightGenerationInFlight.remove(eventId)
+        }
     }
 }

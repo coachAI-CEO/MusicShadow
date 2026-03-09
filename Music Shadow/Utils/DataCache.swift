@@ -88,7 +88,7 @@ final class DataCache {
         
         insightsCache = nil
         insightsCacheTimestamp = nil
-        }
+    }
     
     // MARK: - Cache Management
     

@@ -1,5 +1,5 @@
 # Music Shadow - Current State & Marketing Strategy
-
+and se
 ## 📱 **Current App State**
 
 ### What’s New (Latest)
@@ -22,7 +22,7 @@ Music Shadow is a shadow work journal app that helps users track and understand 
 
 ### Phase 1: Foundation ✅
 - **Dashboard Redesign**: Widget-style home screen with quick stats, featured insights, pattern highlights
-- **Floating Action Button**: Music Shadow emblem (see-through) with "+" for new activation; all dashboard icons navigate to the right pages
+- **Floating Action Button**: Persistent "+" button for quick trigger logging
 - **Progress Indicator**: Multi-step form progress for logging activations
 - **Pagination**: Efficient loading for large trigger lists (20 per page)
 - **Pull-to-Refresh**: Standard iOS refresh gesture across all views

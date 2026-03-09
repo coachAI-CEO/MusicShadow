@@ -3,6 +3,11 @@ import Supabase
 
 // MARK: - Enums
 
+enum TriggerValence: String, CaseIterable {
+    case shadow
+    case positive
+}
+
 enum BodyLocation: String, CaseIterable, Identifiable {
     case chest, throat, gut, head, limbs, wholeBody, numb
     var id: String { rawValue }
@@ -89,6 +94,31 @@ enum ImpulseType: String, CaseIterable, Identifiable {
             case .disappear: return "Drift / float"
             case .attack: return "Move / take action"
             case .nothing: return "Just be"
+            }
+        }
+    }
+}
+
+// MARK: - Form Progress Indicator
+
+private struct FormProgressIndicator: View {
+    let currentStep: Int
+    let totalSteps: Int
+    let stepLabels: [String]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 4) {
+                ForEach(0..<totalSteps, id: \.self) { i in
+                    Capsule()
+                        .fill(i < currentStep ? Color.white.opacity(0.5) : (i == currentStep ? Color.white.opacity(0.9) : Color.white.opacity(0.15)))
+                        .frame(height: 4)
+                }
+            }
+            if currentStep < stepLabels.count {
+                Text(stepLabels[currentStep])
+                    .font(.caption2.weight(.medium))
+                    .foregroundColor(MSTheme.secondaryText)
             }
         }
     }
