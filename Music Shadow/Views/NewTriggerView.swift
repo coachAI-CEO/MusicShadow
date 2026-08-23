@@ -186,38 +186,43 @@ struct NewTriggerView: View {
         case song = 0
         case somatic = 1
         case journal = 2
-        case share = 3
-        
+
         var label: String {
             switch self {
             case .song: return "Song Details"
             case .somatic: return "Body Scan"
             case .journal: return "Reflection"
-            case .share: return "Final Touches"
             }
         }
     }
-    
+
     private var currentStep: Int {
-        // Auto-calculate based on what's filled out
-        if !journalHasAnyContent && !freeJournal.isEmpty {
-            return 3
-        } else if somaticSectionComplete {
-            return 3
-        } else if songSectionComplete {
-            return 2
-        } else {
-            return 1
-        }
+        // Walk the sections in order; the first not-yet-complete one is the
+        // current step. If everything is complete, point past the last so the
+        // final pill lights up too.
+        let sections: [Bool] = [
+            songSectionComplete,
+            somaticSectionComplete,
+            journalSectionComplete
+        ]
+        let nextIncomplete = sections.firstIndex(where: { !$0 }) ?? sections.count
+        return nextIncomplete
     }
-    
+
     private var songSectionComplete: Bool {
         !songTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
-    
+
     private var somaticSectionComplete: Bool {
-        // Always considered complete since we have defaults
+        // Somatic defaults are always filled in (bodyLocation, somaticType,
+        // impulse, intensity). Considered complete once the song title exists,
+        // since the somatic answers only matter when there's an activation to
+        // attach them to.
         songSectionComplete
+    }
+
+    private var journalSectionComplete: Bool {
+        journalHasAnyContent || !freeJournal.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
     
     private var journalHasAnyContent: Bool {
@@ -617,12 +622,26 @@ struct NewTriggerView: View {
                         .foregroundColor(MSTheme.secondaryText)
                 }
 
-                Picker("", selection: $valence) {
-                    Text("Shadow spike").tag(TriggerValence.shadow)
-                    Text("Positive hit").tag(TriggerValence.positive)
+                HStack(spacing: 8) {
+                    ForEach(TriggerValence.allCases, id: \.self) { v in
+                        Button { valence = v } label: {
+                            Text(v == .shadow ? "Shadow spike" : "Positive hit")
+                                .font(.footnote.weight(.semibold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                        .fill(valence == v ? Color.white.opacity(0.20) : Color.white.opacity(0.06))
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                        .stroke(valence == v ? Color.white.opacity(0.9) : Color.white.opacity(0.2), lineWidth: 1)
+                                )
+                                .foregroundColor(valence == v ? MSTheme.primaryText : MSTheme.secondaryText)
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
-                .pickerStyle(.segmented)
-                .tint(.purple)
 
                 Text(
                     valence == .shadow
@@ -794,6 +813,9 @@ struct NewTriggerView: View {
                 .foregroundColor(.white)
         }
         .buttonStyle(PlainButtonStyle())
+        .minimumTouchTarget(44)
+        .accessibilityLabel(title)
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 
     // MARK: - JOURNAL SECTION
@@ -1166,6 +1188,7 @@ struct NewTriggerView: View {
 
         for attempt in 1...maxAttempts {
             try? await Task.sleep(nanoseconds: interval)
+            if Task.isCancelled { return }
 
             let result: [ShadowInsight]? = try? await client
                 .from("shadow_insights")

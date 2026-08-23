@@ -13,6 +13,10 @@ enum ShadowArchetype: String, CaseIterable, Identifiable {
     case protector      = "The Protector"
     case mask           = "The Mask"
     case performer      = "The Performer"
+    // --- New archetypes (Phase 5) ---
+    case ghost          = "The Ghost"
+    case buriedFire     = "The Buried Fire"
+    case defectiveOne   = "The Defective One"
 
     var id: String { rawValue }
 
@@ -25,6 +29,9 @@ enum ShadowArchetype: String, CaseIterable, Identifiable {
         case .protector:      return "ArchetypeProtector"
         case .mask:           return "ArchetypeMask"
         case .performer:      return "ArchetypePerformer"
+        case .ghost:          return "ArchetypeGhost"
+        case .buriedFire:     return "ArchetypeBuriedFire"
+        case .defectiveOne:   return "ArchetypeDefectiveOne"
         }
     }
     
@@ -38,6 +45,9 @@ enum ShadowArchetype: String, CaseIterable, Identifiable {
         case .protector:      return "🛡️"
         case .mask:           return "🎭"
         case .performer:      return "🎤"
+        case .ghost:          return "🌫️"
+        case .buriedFire:     return "🌋"
+        case .defectiveOne:   return "🪞"
         }
     }
 
@@ -58,6 +68,12 @@ enum ShadowArchetype: String, CaseIterable, Identifiable {
             return "I show what’s acceptable, hide what’s real."
         case .performer:
             return "I earn love by entertaining and pleasing."
+        case .ghost:
+            return "If I can’t feel it, I can’t be hurt by it."
+        case .buriedFire:
+            return "My anger was too dangerous to feel, so I swallowed it."
+        case .defectiveOne:
+            return "Something is fundamentally wrong with me that others can’t see yet."
         }
     }
 
@@ -78,6 +94,12 @@ enum ShadowArchetype: String, CaseIterable, Identifiable {
             return "This pattern curates what others see. Vulnerable parts stay behind a mask of ‘fine’, ‘together’, or ‘easygoing’."
         case .performer:
             return "This pattern reaches for charm, humour, or caretaking to stay liked and safe. Being deeply seen can feel exposing."
+        case .ghost:
+            return "At some point, feeling became too dangerous — so the body learned to go quiet. Music that once moved you lands flat. Aliveness feels foreign, even threatening. The disconnection isn’t weakness; it was survival."
+        case .buriedFire:
+            return "Anger was punished, shamed, or felt too destructive to express — so it went underground. It surfaces as depression, sharp self-criticism, or sudden explosions that feel foreign to who you think you are. The fire didn’t disappear. It turned inward."
+        case .defectiveOne:
+            return "Beneath the surface runs a quiet verdict: something is fundamentally wrong with me. Not something I did — something I am. This core shame pre-dates memory and shapes everything, from how compliments land to how much intimacy feels safe."
         }
     }
 
@@ -98,6 +120,12 @@ enum ShadowArchetype: String, CaseIterable, Identifiable {
             return "Fear that your real feelings or self will be rejected or shamed."
         case .performer:
             return "Belief that you must keep others happy to avoid being dropped."
+        case .ghost:
+            return "Early pain required complete dissociation from the body and feeling. Aliveness became synonymous with danger."
+        case .buriedFire:
+            return "Rage was punished or caused harm — so it was turned inward or suppressed entirely, leaving no safe place for anger to live."
+        case .defectiveOne:
+            return "Toxic shame — the internalized conviction of being inherently broken, unlovable, or defective at the core. Not ‘I did something bad’ but ‘I am bad.’"
         }
     }
 
@@ -118,6 +146,12 @@ enum ShadowArchetype: String, CaseIterable, Identifiable {
             return "Smooth on the outside while tension builds under the surface."
         case .performer:
             return "Alert to other people’s moods; body revs up to ‘fix’ the vibe."
+        case .ghost:
+            return "Chronic flatness, dissociation, or depersonalisation. Aliveness feels unfamiliar or threatening. Music may land without resonance — or pierce the numbness suddenly and overwhelmingly."
+        case .buriedFire:
+            return "Chronic low-grade depression, sudden rage that feels alien, or compulsive self-criticism — anger recycled inward because outward expression never felt safe."
+        case .defectiveOne:
+            return "Hypervigilance about being ‘found out’; preemptive self-attack before others can criticise; profound difficulty receiving care, love, or genuine compliments."
         }
     }
 
@@ -133,11 +167,17 @@ enum ShadowArchetype: String, CaseIterable, Identifiable {
         case .invisibleOne:
             return "Taking up a little more space—voice, needs, preferences—in low-risk contexts."
         case .protector:
-            return "Letting the guard soften when there's enough safety — allowing feeling instead of managing."
+            return "Letting the guard soften when there’s enough safety — allowing feeling instead of managing."
         case .mask:
             return "Showing tiny pieces of the real you to people who have earned your trust."
         case .performer:
             return "Letting yourself be held, not just helpful, and tolerating moments where you’re not ‘on’."
+        case .ghost:
+            return "Gentle re-entry into body sensation — micro-doses of pleasure, movement, and breath. Learning that the body can be a home again, not a place to escape."
+        case .buriedFire:
+            return "Locating the anger as information — what boundary was crossed, what mattered? — rather than as threat. Finding safe channels for the fire before it turns inward again."
+        case .defectiveOne:
+            return "Separating shame from guilt. Tracing the verdict to its origin. Building — slowly — a felt sense of inherent worth that doesn’t depend on performance or approval."
         }
     }
 }
@@ -227,6 +267,30 @@ struct ArchetypeEngine {
             if blob.containsAny(of: ["fix the mood", "take care of everyone", "be the strong one"]) {
                 bump(.performer, by: 1)
             }
+
+            // Ghost
+            if blob.containsAny(of: ["numb", "disconnected", "dissociat", "nothing lands", "can't feel", "frozen inside", "detached", "blank", "empty inside", "going through the motions"]) {
+                bump(.ghost, by: 2)
+            }
+            if blob.containsAny(of: ["flat", "shut down", "switched off", "no feeling", "hollow", "not present", "checked out"]) {
+                bump(.ghost, by: 1)
+            }
+
+            // Buried Fire
+            if blob.containsAny(of: ["rage", "anger is dangerous", "can't be angry", "swallowed my anger", "buried anger", "suppressed rage", "anger turned inward", "fury"]) {
+                bump(.buriedFire, by: 2)
+            }
+            if blob.containsAny(of: ["boiling", "explosion", "self-blame", "depression as anger", "no right to be angry", "punished for anger", "too much anger"]) {
+                bump(.buriedFire, by: 1)
+            }
+
+            // Defective One
+            if blob.containsAny(of: ["something wrong with me", "fundamentally broken", "unlovable", "defective", "if they knew the real me", "toxic shame", "inherently bad", "shameful at core"]) {
+                bump(.defectiveOne, by: 2)
+            }
+            if blob.containsAny(of: ["shame", "not enough", "too much", "found out", "fraud", "worthless", "wrong with me", "damaged"]) {
+                bump(.defectiveOne, by: 1)
+            }
         }
 
         // 2) Raw impulses / sensations from events (same as PatternsView)
@@ -238,8 +302,6 @@ struct ArchetypeEngine {
         if (impulseCounts["disappear"] ?? 0) > 0 || (impulseCounts["hide"] ?? 0) > 0 { bump(.invisibleOne) }
         if (impulseCounts["attack"] ?? 0) > 0 { bump(.protector) }
         if (impulseCounts["cling"] ?? 0) > 0 { bump(.abandonedChild) }
-        if buckets.isEmpty && (!insights.isEmpty || !events.isEmpty) { buckets[.loneWolf] = 1 }
-
         return buckets
             .map { ArchetypeScore(archetype: $0.key, score: $0.value) }
             .sorted { $0.score > $1.score }

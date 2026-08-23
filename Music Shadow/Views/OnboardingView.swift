@@ -4,6 +4,7 @@ import SwiftUI
 struct OnboardingView: View {
     @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding: Bool = false
     @State private var currentPage: Int = 0
+    @Environment(\.dismiss) private var dismiss
     
     // Onboarding pages data
     private let pages: [(title: String, body: String)] = [
@@ -106,6 +107,7 @@ struct OnboardingView: View {
     
     private func completeOnboarding() {
         hasSeenOnboarding = true
+        dismiss()
     }
 }
 

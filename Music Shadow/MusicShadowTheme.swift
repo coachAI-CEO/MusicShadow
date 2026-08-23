@@ -67,6 +67,13 @@ extension View {
     func musicShadowBackground() -> some View {
         ZStack {
             MSTheme.bgGradient.ignoresSafeArea()
+            // Faint emblem watermark centred on screen
+            GeometryReader { geo in
+                MusicShadowEmblem(size: min(geo.size.width, geo.size.height) * 0.72)
+                    .opacity(0.04)
+                    .position(x: geo.size.width / 2, y: geo.size.height / 2)
+            }
+            .ignoresSafeArea()
             self
         }
     }
@@ -100,28 +107,44 @@ extension View {
             )
     }
 
-    /// Overlay a FAB that runs `action` when tapped (e.g. `.floatingActionButton { showNewTrigger = true }`).
+    /// Overlay a FAB that runs `action` when tapped.
+    /// The button is a circle showing the Music Shadow emblem with a small + badge.
     func floatingActionButton(action: @escaping () -> Void) -> some View {
         self.overlay(alignment: .bottomTrailing) {
             Button(action: action) {
-                HStack(spacing: 6) {
-                    Image(systemName: "plus")
-                    Text("New activation")
+                ZStack(alignment: .topTrailing) {
+                    ZStack {
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        MSTheme.Colors.accentSecondary.opacity(0.55),
+                                        Color(red: 60/255, green: 20/255, blue: 120/255).opacity(0.85)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 56, height: 56)
+                            .overlay(Circle().stroke(MSTheme.cardStroke, lineWidth: 1))
+                        MusicShadowEmblem(size: 28)
+                    }
+                    // Small + badge in top-right corner
+                    ZStack {
+                        Circle()
+                            .fill(MSTheme.Colors.accentPrimary)
+                            .frame(width: 18, height: 18)
+                        Image(systemName: "plus")
+                            .font(.system(size: 10, weight: .black))
+                            .foregroundColor(.white)
+                    }
+                    .accessibilityHidden(true)
+                    .offset(x: 2, y: -2)
                 }
-                .font(.title2.weight(.semibold))
-                .foregroundStyle(MSTheme.primaryText)
-                .padding(.horizontal, MSTheme.Spacing.md)
-                .padding(.vertical, MSTheme.Spacing.sm)
-                .background(
-                    RoundedRectangle(cornerRadius: MSTheme.CornerRadius.lg, style: .continuous)
-                        .fill(MSTheme.cardBackground)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: MSTheme.CornerRadius.lg, style: .continuous)
-                                .stroke(MSTheme.cardStroke, lineWidth: 1)
-                        )
-                )
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("New activation")
+            .accessibilityHint("Log a new music shadow activation")
             .padding(.trailing, MSTheme.Spacing.lg)
             .padding(.bottom, MSTheme.Spacing.lg)
         }

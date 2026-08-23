@@ -381,7 +381,7 @@ private struct PartnerAIInsightCard: View {
                         .foregroundColor(MSTheme.secondaryText)
                 }
             } else if let errorMessage {
-                Text("We couldn't load the reflection this time.")
+                Text(errorMessage)
                     .font(.footnote)
                     .foregroundColor(MSTheme.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)

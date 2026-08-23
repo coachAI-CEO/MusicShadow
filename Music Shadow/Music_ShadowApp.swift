@@ -16,9 +16,6 @@ struct Music_ShadowApp: App {
                 .fullScreenCover(isPresented: $showOnboarding) {
                     OnboardingView()
                 }
-                .onReceive(NotificationCenter.default.publisher(for: .showOnboarding)) { _ in
-                    showOnboarding = true
-                }
         }
     }
 }

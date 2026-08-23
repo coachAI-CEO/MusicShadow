@@ -221,19 +221,30 @@ struct ExportDataView: View {
         errorMessage = nil
         HapticManager.trigger(.light)
 
+        let client = SupabaseClientManager.shared.client
+
+        guard let userId = client.auth.currentSession?.user.id else {
+            errorMessage = "Please sign in to export your data."
+            isExporting = false
+            HapticManager.trigger(.error)
+            return
+        }
+
         do {
-            let events: [SongEvent] = try await SupabaseClientManager.shared.client
+            let events: [SongEvent] = try await client
                 .from("song_events")
                 .select()
+                .eq("user_id", value: userId.uuidString)
                 .order("created_at", ascending: false)
                 .execute()
                 .value
 
             var insights: [ShadowInsight] = []
             if includeInsights {
-                insights = try await SupabaseClientManager.shared.client
+                insights = try await client
                     .from("shadow_insights")
                     .select()
+                    .eq("user_id", value: userId.uuidString)
                     .execute()
                     .value
             }

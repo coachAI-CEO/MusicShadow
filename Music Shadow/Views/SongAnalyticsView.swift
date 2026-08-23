@@ -355,12 +355,36 @@ struct SongAnalyticsView: View {
                             .font(.caption.weight(.semibold))
                             .foregroundColor(MSTheme.secondaryText)
                         
-                        Picker("Time Range", selection: $dateRangeFilter) {
-                            ForEach(DateRangeFilter.allCases) { range in
-                                Text(range.label).tag(range)
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(DateRangeFilter.allCases) { range in
+                                    Button {
+                                        dateRangeFilter = range
+                                    } label: {
+                                        Text(range.label)
+                                            .font(.caption.weight(.semibold))
+                                            .padding(.horizontal, 14)
+                                            .padding(.vertical, 6)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                                    .fill(dateRangeFilter == range
+                                                          ? Color.white.opacity(0.20)
+                                                          : Color.white.opacity(0.06))
+                                            )
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                                    .stroke(dateRangeFilter == range
+                                                            ? Color.white.opacity(0.9)
+                                                            : Color.white.opacity(0.2), lineWidth: 1)
+                                            )
+                                            .foregroundColor(dateRangeFilter == range
+                                                             ? MSTheme.primaryText
+                                                             : MSTheme.secondaryText)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
                             }
                         }
-                        .pickerStyle(.segmented)
                     }
                     
                     // Body location filter
@@ -422,6 +446,7 @@ struct SongAnalyticsView: View {
                             
                             Toggle("", isOn: $intensityFilterEnabled)
                                 .toggleStyle(.switch)
+                                .tint(MSTheme.Colors.accentPrimary)
                                 .labelsHidden()
                         }
                         

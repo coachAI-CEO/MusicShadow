@@ -53,10 +53,4 @@ final class NotificationManager {
         let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: [radarIdentifier])
     }
-}//
-//  NotificationManager.swift
-//  Music Shadow
-//
-//  Created by macbook on 11/26/25.
-//
-
+}

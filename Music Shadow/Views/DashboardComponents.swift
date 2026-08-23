@@ -228,10 +228,15 @@ struct SummaryCard: View {
     let subtitle: String
 
     var body: some View {
-        HStack(alignment: .top, spacing: 14) {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundColor(iconColor)
+        HStack(alignment: .center, spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(iconColor.opacity(0.18))
+                    .frame(width: 44, height: 44)
+                Image(systemName: icon)
+                    .font(.body.weight(.semibold))
+                    .foregroundColor(iconColor)
+            }
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.subheadline.weight(.semibold))
@@ -270,30 +275,56 @@ struct QuickActionsGrid: View {
 
     var body: some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-            quickAction(title: "Browse Triggers", icon: "music.note.list") { onBrowseTriggers() }
-            quickAction(title: "Song Analytics", icon: "chart.bar") { onSongAnalytics() }
-            quickAction(title: "My Archetypes", icon: "person.2.fill") { onMyArchetypes() }
-            quickAction(title: "Timeline", icon: "calendar") { onTimeline() }
+            quickAction(
+                title: "Browse Triggers",
+                icon: "music.note.list",
+                gradient: [Color(red: 160/255, green: 80/255, blue: 255/255), Color(red: 120/255, green: 50/255, blue: 200/255)]
+            ) { onBrowseTriggers() }
+            quickAction(
+                title: "Song Analytics",
+                icon: "chart.bar.fill",
+                gradient: [Color(red: 40/255, green: 140/255, blue: 255/255), Color(red: 20/255, green: 100/255, blue: 200/255)]
+            ) { onSongAnalytics() }
+            quickAction(
+                title: "My Archetypes",
+                icon: "person.2.fill",
+                gradient: [Color(red: 220/255, green: 80/255, blue: 160/255), Color(red: 180/255, green: 50/255, blue: 120/255)]
+            ) { onMyArchetypes() }
+            quickAction(
+                title: "Timeline",
+                icon: "calendar",
+                gradient: [Color(red: 200/255, green: 120/255, blue: 60/255), Color(red: 160/255, green: 90/255, blue: 40/255)]
+            ) { onTimeline() }
         }
     }
 
-    private func quickAction(title: String, icon: String, action: @escaping () -> Void) -> some View {
+    private func quickAction(title: String, icon: String, gradient: [Color], action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            VStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.title2)
+            VStack(spacing: 10) {
+                ZStack {
+                    Circle()
+                        .fill(LinearGradient(
+                            colors: gradient,
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ))
+                        .frame(width: 56, height: 56)
+                    Image(systemName: icon)
+                        .font(.title3.weight(.semibold))
+                        .foregroundColor(.white)
+                }
                 Text(title)
-                    .font(.caption)
+                    .font(.caption.weight(.medium))
+                    .foregroundColor(MSTheme.primaryText)
                     .lineLimit(1)
             }
-            .foregroundColor(MSTheme.primaryText)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
+            .padding(.vertical, 18)
             .background(
-                RoundedRectangle(cornerRadius: MSTheme.CornerRadius.md, style: .continuous)
-                    .fill(Color.white.opacity(0.06))
+                RoundedRectangle(cornerRadius: MSTheme.CornerRadius.lg, style: .continuous)
+                    .fill(Color.white.opacity(0.05))
                     .overlay(
-                        RoundedRectangle(cornerRadius: MSTheme.CornerRadius.md, style: .continuous)
+                        RoundedRectangle(cornerRadius: MSTheme.CornerRadius.lg, style: .continuous)
                             .stroke(MSTheme.cardStroke, lineWidth: 0.8)
                     )
             )

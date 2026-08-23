@@ -1,0 +1,18 @@
+# Xcode
+*.xcuserstate
+xcuserdata/
+DerivedData/
+build/
+*.xcworkspace/xcuserdata/
+
+# Supabase CLI generated state
+supabase/.temp/
+Music Shadow/supabase/.temp/
+
+# macOS
+.DS_Store
+
+# Editor
+*.swp
+*~
+.vscode/

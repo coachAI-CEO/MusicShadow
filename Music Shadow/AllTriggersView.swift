@@ -1,5 +1,24 @@
 import SwiftUI
 
+private let triggerRowISOFormatter: ISO8601DateFormatter = {
+    let f = ISO8601DateFormatter()
+    f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    return f
+}()
+
+private let triggerRowRelativeFormatter: RelativeDateTimeFormatter = {
+    let f = RelativeDateTimeFormatter()
+    f.unitsStyle = .short
+    return f
+}()
+
+func triggerRowFormatDate(_ isoString: String) -> String {
+    guard let date = triggerRowISOFormatter.date(from: isoString) else {
+        return isoString
+    }
+    return triggerRowRelativeFormatter.localizedString(for: date, relativeTo: Date())
+}
+
 struct AllTriggersView: View {
     let events: [SongEvent]
     @State private var searchText = ""
@@ -108,7 +127,7 @@ struct TriggerRow: View {
                 }
 
                 if let created = event.created_at {
-                    Text(created)
+                    Text(triggerRowFormatDate(created))
                         .font(.caption2)
                         .foregroundColor(MSTheme.secondaryText.opacity(0.7))
                 }

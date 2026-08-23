@@ -62,8 +62,12 @@ struct PatternsView: View {
                         }
 
                         // 4) Shadow Archetype snapshot
-                        if let snapshot = archetypeSnapshot {
-                            ShadowArchetypeSummaryCard(snapshot: snapshot)
+                        let archetypeScores = ArchetypeEngine.scores(from: insights, events: events)
+                        if !archetypeScores.isEmpty {
+                            ShadowArchetypeCard(
+                                primary: archetypeScores.first,
+                                secondary: archetypeScores.count > 1 ? archetypeScores[1] : nil
+                            )
                         }
 
                         // 5) AI Themes snapshot
@@ -411,152 +415,7 @@ struct ResponsePatternsCard: View {
 }
 
 // MARK: - Shadow Archetypes
-
-enum ShadowArchetypeID: String, CaseIterable {
-    case abandonedChild = "AbandonedChild"
-    case loneWolf       = "LoneWolf"
-    case overachiever   = "Overachiever"
-    case invisibleOne   = "InvisibleOne"
-    case protector      = "Protector"
-    case mask           = "Mask"
-    case performer      = "Performer"
-}
-
-struct ShadowArchetypeScore {
-    let id: ShadowArchetypeID
-    let score: Int
-}
-
-struct ShadowArchetypeSnapshot {
-    let primary: ShadowArchetypeScore
-    let secondary: ShadowArchetypeScore?
-}
-
-struct ShadowArchetypeSummaryCard: View {
-    let snapshot: ShadowArchetypeSnapshot
-
-    private var primaryProfile: ShadowArchetypeProfile {
-        ShadowArchetypeProfile.profile(for: snapshot.primary.id)
-    }
-
-    private var secondaryProfile: ShadowArchetypeProfile? {
-        guard let secondary = snapshot.secondary else { return nil }
-        return ShadowArchetypeProfile.profile(for: secondary.id)
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Shadow archetype")
-                .font(.headline)
-                .foregroundColor(MSTheme.secondaryText)
-
-            Text("A rough sketch of the pattern your triggers cluster around. This will evolve as you log more.")
-                .font(.caption)
-                .foregroundColor(MSTheme.secondaryText.opacity(0.9))
-
-            HStack(alignment: .top, spacing: 12) {
-                Text(primaryProfile.emoji)
-                    .font(.system(size: 32))
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(primaryProfile.name)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundColor(MSTheme.primaryText)
-
-                    Text(primaryProfile.tagline)
-                        .font(.caption)
-                        .foregroundColor(MSTheme.secondaryText)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                Spacer()
-            }
-            .padding(.vertical, 4)
-
-            if let secondaryProfile {
-                Divider()
-                    .background(MSTheme.cardStroke)
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Secondary pattern")
-                        .font(.caption.weight(.semibold))
-                        .foregroundColor(MSTheme.secondaryText)
-
-                    HStack(spacing: 8) {
-                        Text(secondaryProfile.emoji)
-                        Text(secondaryProfile.name)
-                            .font(.caption)
-                    }
-                    .foregroundColor(MSTheme.secondaryText)
-                }
-            }
-        }
-        .shadowCard()
-    }
-}
-
-struct ShadowArchetypeProfile {
-    let id: ShadowArchetypeID
-    let name: String
-    let emoji: String
-    let tagline: String
-}
-
-extension ShadowArchetypeProfile {
-    static func profile(for id: ShadowArchetypeID) -> ShadowArchetypeProfile {
-        switch id {
-        case .abandonedChild:
-            return .init(
-                id: id,
-                name: "The Abandoned Child",
-                emoji: "🧸",
-                tagline: "Fears being left, unseen, or too much. Big spikes when closeness feels threatened."
-            )
-        case .loneWolf:
-            return .init(
-                id: id,
-                name: "The Lone Wolf",
-                emoji: "🐺",
-                tagline: "Handles everything alone, pulls away when it feels too vulnerable or dependent."
-            )
-        case .overachiever:
-            return .init(
-                id: id,
-                name: "The Overachiever",
-                emoji: "🏅",
-                tagline: "Drives hard to prove worth. Triggers land when standards aren’t met or effort isn’t seen."
-            )
-        case .invisibleOne:
-            return .init(
-                id: id,
-                name: "The Invisible One",
-                emoji: "👻",
-                tagline: "Stays small or fades out to stay safe. Spikes when ignored, talked over, or unseen."
-            )
-        case .protector:
-            return .init(
-                id: id,
-                name: "The Protector",
-                emoji: "🛡️",
-                tagline: "Stays guarded, scanning for threat. Reacts quickly to potential hurt or disrespect."
-            )
-        case .mask:
-            return .init(
-                id: id,
-                name: "The Mask",
-                emoji: "🎭",
-                tagline: "Presents what’s acceptable, hides the rest. Triggered when the mask slips or feels forced."
-            )
-        case .performer:
-            return .init(
-                id: id,
-                name: "The Performer",
-                emoji: "🎤",
-                tagline: "Wins love through doing and entertaining. Spikes when the audience disappears."
-            )
-        }
-    }
-}
+// Archetype scoring and types are in ShadowArchetype.swift (ArchetypeEngine, ShadowArchetype, ArchetypeScore)
 // MARK: - 6) Song Activation Analytics (summary card)
 
 struct SongActivationAggregate: Identifiable {
@@ -915,14 +774,6 @@ extension PatternsView {
         return result
     }
 
-    // Archetype snapshot (primary + secondary)
-    var archetypeSnapshot: ShadowArchetypeSnapshot? {
-        let scores = computeArchetypeScores(events: events, insights: insights)
-        guard let primary = scores.first else { return nil }
-        let secondary = scores.count > 1 ? scores[1] : nil
-        return ShadowArchetypeSnapshot(primary: primary, secondary: secondary)
-    }
-
     // Map SongAnalytics aggregates → compact home card aggregates
     var songActivationAggregates: [SongActivationAggregate] {
         let aggregated = aggregateSongs(from: events)
@@ -939,71 +790,6 @@ extension PatternsView {
         }
     }
 
-    private func computeArchetypeScores(
-        events: [SongEvent],
-        insights: [ShadowInsight]
-    ) -> [ShadowArchetypeScore] {
-
-        var buckets: [ShadowArchetypeID: Int] = [:]
-        func bump(_ id: ShadowArchetypeID, by value: Int = 1) {
-            buckets[id, default: 0] += value
-        }
-
-        // 1) AI insights
-        for insight in insights {
-            let wound = (insight.wound_type ?? "").lowercased()
-            let protector = (insight.protector_mode ?? "").lowercased()
-            let belief = (insight.core_belief ?? "").lowercased()
-
-            if wound.contains("abandon") || belief.contains("unlovable") || belief.contains("not worthy") {
-                bump(.abandonedChild, by: 3)
-            }
-            if protector.contains("withdraw") || protector.contains("isolation") {
-                bump(.loneWolf, by: 2)
-            }
-            if protector.contains("perfection") || belief.contains("never enough") {
-                bump(.overachiever, by: 2)
-            }
-            if belief.contains("invisible") || belief.contains("don’t matter") {
-                bump(.invisibleOne, by: 2)
-            }
-            if protector.contains("anger") || protector.contains("guard") {
-                bump(.protector, by: 2)
-            }
-            if protector.contains("people pleasing") || belief.contains("must be liked") {
-                bump(.performer, by: 2)
-            }
-        }
-
-        // 2) Raw impulses / sensations
-        let impulses = events.compactMap { $0.impulse?.lowercased() }
-        let sensations = events.compactMap { $0.somatic_type?.lowercased() }
-
-        let impulseCounts = Dictionary(grouping: impulses, by: { $0 }).mapValues { $0.count }
-        let sensationCounts = Dictionary(grouping: sensations, by: { $0 }).mapValues { $0.count }
-
-        if (impulseCounts["cry"] ?? 0) > 0 || (sensationCounts["tight"] ?? 0) > 0 {
-            bump(.abandonedChild)
-        }
-        if (impulseCounts["disappear"] ?? 0) > 0 || (impulseCounts["hide"] ?? 0) > 0 {
-            bump(.invisibleOne)
-        }
-        if (impulseCounts["attack"] ?? 0) > 0 {
-            bump(.protector)
-        }
-        if (impulseCounts["cling"] ?? 0) > 0 {
-            bump(.abandonedChild)
-        }
-
-        // Fallback so UI always has something
-        if buckets.isEmpty {
-            buckets[.loneWolf] = 1
-        }
-
-        return buckets
-            .map { ShadowArchetypeScore(id: $0.key, score: $0.value) }
-            .sorted { $0.score > $1.score }
-    }
 }
 
 // MARK: - Data Loading
@@ -1072,7 +858,13 @@ extension PatternsView {
             }
 
         } catch {
-            print("Error loading insights: \(error)")
+            DebugMode.shared.log("Error loading insights: \(error.localizedDescription)", category: "Error")
+            await MainActor.run {
+                // Don't clobber a more specific events error message if we already have one.
+                if errorMessage == nil {
+                    errorMessage = "We couldn't load your reflections. Patterns will use events only."
+                }
+            }
         }
     }
 }

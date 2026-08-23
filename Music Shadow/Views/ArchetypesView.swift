@@ -10,6 +10,7 @@ struct ArchetypesView: View {
     @State private var localEvents: [SongEvent] = []
     @State private var localInsights: [ShadowInsight] = []
     @State private var isLoading: Bool = false
+    @State private var errorMessage: String?
 
     private var activeEvents: [SongEvent] {
         events.isEmpty ? localEvents : events
@@ -38,6 +39,25 @@ struct ArchetypesView: View {
                         .foregroundColor(MSTheme.secondaryText)
                 }
                 
+                if let errorMessage {
+                    Text(errorMessage)
+                        .font(.callout)
+                        .foregroundColor(MSTheme.Colors.error)
+                        .padding()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .shadowCard()
+                } else if isLoading && archetypeScores.isEmpty {
+                    HStack(spacing: 10) {
+                        ProgressView().tint(MSTheme.secondaryText)
+                        Text("Reading your patterns…")
+                            .font(.callout)
+                            .foregroundColor(MSTheme.secondaryText)
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .shadowCard()
+                }
+
                 // PRIMARY ARCHETYPE CARD
                 if let primary = archetypeScores.first {
                     VStack(alignment: .leading, spacing: 12) {
@@ -118,19 +138,63 @@ struct ArchetypesView: View {
     
     private func loadData() async {
         isLoading = true
-        
-        // Get current user ID to access cache
+        errorMessage = nil
+
+        // Get current user ID to access cache and scope network queries
         guard let userId = SupabaseClientManager.shared.client.auth.currentSession?.user.id else {
             isLoading = false
+            errorMessage = "Please sign in to see your archetypes."
             return
         }
-        
+
+        let client = SupabaseClientManager.shared.client
+
+        // Try cache first
         if let cachedEvents = DataCache.shared.getCachedEvents(userId: userId) {
             localEvents = cachedEvents
         }
         if let cachedInsights = DataCache.shared.getCachedInsights(userId: userId) {
             localInsights = cachedInsights
         }
+
+        // Cache hit on both → done
+        if !localEvents.isEmpty || !localInsights.isEmpty {
+            isLoading = false
+            return
+        }
+
+        // Cache miss → fetch directly so users who deep-link to Archetypes
+        // before visiting the Dashboard still see real data.
+        do {
+            async let eventsFetch: [SongEvent] = client
+                .from("song_events")
+                .select()
+                .eq("user_id", value: userId)
+                .order("created_at", ascending: false)
+                .execute()
+                .value
+
+            async let insightsFetch: [ShadowInsight] = client
+                .from("shadow_insights")
+                .select()
+                .eq("user_id", value: userId)
+                .order("created_at", ascending: false)
+                .execute()
+                .value
+
+            let (fetchedEvents, fetchedInsights) = try await (eventsFetch, insightsFetch)
+
+            // Backfill the cache so subsequent reads are fast.
+            DataCache.shared.setCachedEvents(fetchedEvents, userId: userId)
+            DataCache.shared.setCachedInsights(fetchedInsights, userId: userId)
+
+            localEvents = fetchedEvents
+            localInsights = fetchedInsights
+        } catch {
+            DebugMode.shared.log("ArchetypesView direct fetch failed: \(error.localizedDescription)", category: "Error")
+            errorMessage = "We couldn't load your archetypes. Please try again."
+        }
+
         isLoading = false
     }
 }
@@ -153,7 +217,7 @@ struct ArchetypeGridItem: View {
                 if score > 0 {
                     Text("\(score)")
                         .font(.caption2.bold())
-                        .foregroundColor(.black)
+                        .foregroundColor(.white)
                         .padding(4)
                         .background(Circle().fill(MSTheme.Colors.accentPrimary))
                         .offset(x: 8, y: -8)

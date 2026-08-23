@@ -10,7 +10,8 @@ final class DataCache {
     private var insightsCache: [ShadowInsight]?
     private var eventsCacheTimestamp: Date?
     private var insightsCacheTimestamp: Date?
-    private var cachedUserId: UUID?
+    private var eventsCachedUserId: UUID?
+    private var insightsCachedUserId: UUID?
     
     /// Time-to-live for in-memory cached data.
     /// Phase 4 performance work: increase TTL so we hit Supabase less often
@@ -30,8 +31,8 @@ final class DataCache {
     func getCachedEvents(userId: UUID) -> [SongEvent]? {
         cacheLock.lock()
         defer { cacheLock.unlock() }
-        
-        guard cachedUserId == userId,
+
+        guard eventsCachedUserId == userId,
               let events = eventsCache,
               let timestamp = eventsCacheTimestamp,
               Date().timeIntervalSince(timestamp) < cacheTTL else {
@@ -39,32 +40,33 @@ final class DataCache {
         }
         return events
     }
-    
+
     func setCachedEvents(_ events: [SongEvent], userId: UUID) {
         cacheLock.lock()
         defer { cacheLock.unlock() }
-        
+
         eventsCache = events
         eventsCacheTimestamp = Date()
-        cachedUserId = userId
+        eventsCachedUserId = userId
     }
-    
+
     func invalidateEventsCache() {
         cacheLock.lock()
         defer { cacheLock.unlock() }
-        
+
         eventsCache = nil
         eventsCacheTimestamp = nil
+        eventsCachedUserId = nil
     }
-    
+
     // MARK: - Insights Cache
-    
+
     /// Returns cached insights only if they belong to the given user; otherwise nil.
     func getCachedInsights(userId: UUID) -> [ShadowInsight]? {
         cacheLock.lock()
         defer { cacheLock.unlock() }
-        
-        guard cachedUserId == userId,
+
+        guard insightsCachedUserId == userId,
               let insights = insightsCache,
               let timestamp = insightsCacheTimestamp,
               Date().timeIntervalSince(timestamp) < cacheTTL else {
@@ -72,35 +74,37 @@ final class DataCache {
         }
         return insights
     }
-    
+
     func setCachedInsights(_ insights: [ShadowInsight], userId: UUID) {
         cacheLock.lock()
         defer { cacheLock.unlock() }
-        
+
         insightsCache = insights
         insightsCacheTimestamp = Date()
-        cachedUserId = userId
+        insightsCachedUserId = userId
     }
-    
+
     func invalidateInsightsCache() {
         cacheLock.lock()
         defer { cacheLock.unlock() }
-        
+
         insightsCache = nil
         insightsCacheTimestamp = nil
+        insightsCachedUserId = nil
     }
-    
+
     // MARK: - Cache Management
-    
+
     func invalidateAll() {
         cacheLock.lock()
         defer { cacheLock.unlock() }
-        
+
         eventsCache = nil
         insightsCache = nil
         eventsCacheTimestamp = nil
         insightsCacheTimestamp = nil
-        cachedUserId = nil
+        eventsCachedUserId = nil
+        insightsCachedUserId = nil
     }
     
     // MARK: - Last Refresh Time
