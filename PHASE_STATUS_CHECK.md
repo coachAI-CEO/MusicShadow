@@ -87,18 +87,17 @@ Based on comprehensive code review, here's the actual implementation status vs t
 
 ---
 
-### 6. Search in AllTriggersView ❌ **NOT DONE**
-**Status:** Missing
+### 6. Search in AllTriggersView ✅ **DONE**
+**Status:** Fully implemented
 
 **Evidence:**
-- `AllTriggersView.swift` has no search implementation
-- No `@State private var searchText`
-- No `.searchable()` modifier
-- No `filteredEvents` computed property
+- `AllTriggersView.swift` lines 24-43:
+  - `@State private var searchText`
+  - `var filteredEvents` computed property filtering on `song_title`, `artist`, and `free_journal`
+  - `.searchable(text: $searchText)` modifier on the `ScrollView`
+  - Empty-state message changes when no results match
 
-**Impact:** Medium - hard to find specific triggers as list grows
-
-**Recommendation:** Implement search as outlined in improvement plan
+**Quality:** Good — matches improvement plan specification
 
 ---
 
@@ -135,17 +134,15 @@ Based on comprehensive code review, here's the actual implementation status vs t
 
 ---
 
-### 3. Milestone Celebrations ❌ **NOT DONE**
-**Status:** Missing
+### 3. Milestone Celebrations ✅ **DONE**
+**Status:** Fully implemented
 
 **Evidence:**
-- No milestone checking logic
-- No `MilestoneCelebrationView` component
-- Only mentioned in improvement plan docs
+- `MilestoneCelebrationView.swift` — reusable component with milestone values `[1, 5, 10, 25, 50, 100]`
+- `MilestoneTracker.checkAndCelebrateMilestone(triggerCount:)` called in `NewTriggerView.swift` after a successful save (line 1051)
+- Milestone state persisted to `UserDefaults` so celebrations don't repeat on re-launch
 
-**Impact:** Low-Medium - nice-to-have engagement feature
-
-**Recommendation:** Add milestone checking after trigger submission (1, 5, 10, 25, 50, 100 triggers)
+**Quality:** Good — non-intrusive, fires after a new activation is saved
 
 ---
 
@@ -179,48 +176,42 @@ Based on comprehensive code review, here's the actual implementation status vs t
 
 ## 📊 **Summary**
 
-### Phase 1 Completion: **4/6 tasks (67%)**
+### Phase 1 Completion: **6/8 tasks (75%)**
 ✅ Dashboard redesign  
 ✅ FAB for New Trigger  
 ✅ Progress indicator  
 ❌ Pagination  
 ⚠️ Pull-to-refresh (1/4 views)  
-❌ Search  
+✅ Search  
 
-### Phase 2 Completion: **3/5 tasks (60%)**
+### Phase 2 Completion: **4/6 tasks (67%)**
 ✅ Haptic feedback  
 ❌ Swipe actions  
-❌ Milestone celebrations  
+✅ Milestone celebrations  
 ✅ Empty state  
 ✅ Loading skeletons  
 
-### Overall Phase 1+2: **7/11 tasks (64%)**
+### Overall Phase 1+2: **10/14 tasks (71%)**
 
 ---
 
 ## 🎯 **Immediate Action Items**
 
 ### High Priority (Complete Phase 1)
-1. **Add Search to AllTriggersView** (15 min)
-   - Most requested feature
-   - Quick win
-
-2. **Add Pull-to-Refresh** (10 min)
-   - Standard iOS pattern
-   - Easy implementation
+1. ~~Add Search to AllTriggersView~~ ✅ **DONE** (shipped in QA-pass)
+2. ~~Add Milestone Celebrations~~ ✅ **DONE** (shipped in QA-pass)
 
 3. **Implement Pagination** (30 min)
    - Performance concern
    - Prevents slow loading with many triggers
 
 ### Medium Priority (Complete Phase 2)
-4. **Add Swipe Actions** (30 min)
+4. **Add Pull-to-Refresh** to ContentView, AllTriggersView, SongAnalyticsView, PatternsView (20 min)
+   - Currently only PartnerFeedView has it
+
+5. **Add Swipe Actions** (30 min)
    - User expectation
    - Good UX pattern
-
-5. **Add Milestone Celebrations** (2 hours)
-   - Engagement feature
-   - Low effort, good impact
 
 ---
 
@@ -231,17 +222,19 @@ Based on comprehensive code review, here's the actual implementation status vs t
 3. **Haptic feedback** - well-implemented
 4. **Component architecture** - reusable, clean code
 5. **Theme system** - consistent MSTheme usage
+6. **Search** - now fully implemented in AllTriggersView
+7. **Milestone celebrations** - fires after saves, state persisted to UserDefaults
 
 ---
 
 ## 📝 **Notes**
 
-- Phase 1 and Phase 2 documentation exists but doesn't match actual implementation
-- Some features mentioned as "done" in docs are actually missing
+- Phase 1 and Phase 2 documentation was out of sync with code; this update corrects the record
+- Search and Milestone Celebrations were confirmed shipped in the QA-pass but not reflected here
 - Code quality is high where implemented
 - Missing features are straightforward to add
 
 ---
 
-**Last Updated:** Based on code review on current codebase  
+**Last Updated:** 2026-08-23 (post-QA-pass sync)  
 **Next Steps:** Complete remaining Phase 1 items, then Phase 2 polish

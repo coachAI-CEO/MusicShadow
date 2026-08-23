@@ -24,9 +24,10 @@ Music Shadow is a shadow work journal app that helps users track and understand 
 - **Dashboard Redesign**: Widget-style home screen with quick stats, featured insights, pattern highlights
 - **Floating Action Button**: Persistent "+" button for quick trigger logging
 - **Progress Indicator**: Multi-step form progress for logging activations
-- **Pagination**: Efficient loading for large trigger lists (20 per page)
-- **Pull-to-Refresh**: Standard iOS refresh gesture across all views
-- **Search**: Full-text search across song titles, artists, and journal entries
+- **Search**: Full-text search across song titles, artists, and journal entries in AllTriggersView
+- **Milestone Celebrations**: Recognition at 1, 5, 10, 25, 50, 100 triggers
+
+*Note: Pagination and full pull-to-refresh (beyond PartnerFeedView) are tracked in the app's issue backlog.*
 
 ### Phase 2: Polish ✅
 - **Haptic Feedback**: Tactile responses throughout the app
@@ -89,18 +90,19 @@ Music Shadow is a shadow work journal app that helps users track and understand 
   - Nervous system state analysis
   - Tied to song moment and lyrics when provided
   
-- **Shadow Archetypes**: Six archetypes based on patterns:
+- **Shadow Archetypes**: Ten archetypes based on patterns:
   - Abandoned Child
   - Lone Wolf
   - Overachiever
   - Invisible One
   - Protector
+  - Mask
   - Performer
+  - Ghost
+  - Buried Fire
+  - Defective One
   
-- **Partner Sharing**: Optional sharing of activations with partner
-  - Partner feed view
-  - Privacy controls per activation
-  - Summary sharing
+- **Partner Sharing**: Settings UI for entering a partner email exists; the partner read path is not yet implemented at the database level. The `share_with_partner` and `partner_share_level` columns are live on `song_events`, but RLS currently blocks all cross-user reads. Full partner sharing requires a SELECT policy that joins `auth.users.email` to `partner_links.partner_email`.
   
 - **Emotional Radar**: 7-day intensity visualization
   - Daily average intensity tracking
@@ -622,5 +624,5 @@ Music Shadow is a shadow work journal app that helps users track and understand 
 ---
 
 **Status:** App shipped to App Store; marketing execution in progress  
-**Last Updated:** Phase 4 polish complete (lyrics + time in AI reflection, themed discard alert, FAB emblem, full dashboard navigation, per-user cache, Patterns UX).  
+**Last Updated:** 2026-08-23 — RLS lockdown (partner_links secure), QA-pass sweep complete, doc sync (removed false Phase 1 claims, updated archetypes from 6 to 10, honest partner-sharing section).  
 **Key Focus:** Authenticity, education, and community building
