@@ -1,9 +1,13 @@
 # Xcode
 *.xcuserstate
 xcuserdata/
-DerivedData/
-build/
 *.xcworkspace/xcuserdata/
+DerivedData/
+**/Build/          # Xcode build output (capital B, Xcode's actual default)
+**/build/          # lowercase variant some tools use
+*.ipa
+*.dSYM.zip
+*.dSYM
 
 # Supabase CLI generated state
 supabase/.temp/
