@@ -12,9 +12,13 @@ and se
 - **App Store**: Privacy policy and encryption declaration in place; generate_insight deployed with primary/fallback Gemini models.
 
 ### What is Music Shadow?
-Music Shadow is a shadow work journal app that helps users track and understand their emotional responses to music. When a song triggers an emotional activation, users log it to discover patterns, archetypes, and insights about their inner landscape.
+Music Shadow is a vulnerability tool for close relationships, built on a foundation of solo shadow work. The loop: a song hits you → you log it → AI surfaces what's underneath → you understand what you feel → you send the song and your reflection to someone who matters → they see what you meant to say.
 
-**Core Concept:** Music activates our shadow — the hidden parts of ourselves. This app helps you map that activation and turn it into self-awareness.
+The solo features (journaling, AI insights, 10 Jungian archetypes, pattern detection) are the prerequisite: they teach you to understand your emotional responses to music. The share is the payoff.
+
+**Core Concept:** You can only share a feeling you've first understood yourself. Music Shadow helps you understand it — then say the unsayable through the song you'd have sent anyway.
+
+> **Direction updated 2026-10-06.** See `docs/office-hours-2026-10-06.md` for the full product evaluation.
 
 ---
 
@@ -123,72 +127,74 @@ Music Shadow is a shadow work journal app that helps users track and understand 
 
 ## 🎯 **Target Audience**
 
-### Primary Audience
-**Shadow Work Practitioners & Therapy Clients**
-- Age: 25-45
-- Gender: All (slight skew toward women)
+### Primary Audience (updated 2026-10-06)
+**People in close relationships who feel things through music they can't say directly**
+- Romantic partners, close friends, adult children and parents
+- People who send songs without context and feel the receiver "doesn't get it"
+- People who hold back sending songs because vulnerability feels too risky
 - Characteristics:
-  - Engaged in therapy, coaching, or self-development
-  - Interested in shadow work, inner child work, IFS (Internal Family Systems)
-  - Emotionally aware and introspective
-  - Uses journaling apps or mental health apps
-  - Values privacy and data ownership
+  - Has felt a song and thought "this is exactly what I mean — but I can't just send this"
+  - Afraid the other person will misinterpret the song's emotional weight
+  - Looking for a way to be understood, not just heard
+  - Values emotional depth in close relationships
 
 ### Secondary Audience
-**Music-Emotion Explorers**
-- Musicians and music lovers exploring emotional connections
-- People processing grief, trauma, or relationship patterns
-- Meditation and mindfulness practitioners
-- Psychology students and professionals
+**Shadow Work Practitioners & Therapy-Adjacent Explorers**
+- Age: 25-45, skews toward people in active self-development
+- Interested in shadow work, inner child work, IFS (Internal Family Systems)
+- Will use the solo journaling features as their primary experience before discovering the share feature
 
 ### Tertiary Audience
-**General Wellness Seekers**
-- People interested in emotional intelligence
-- Self-improvement enthusiasts
-- Anyone curious about music's impact on emotions
+**Music-Emotion Explorers**
+- Emotionally aware music lovers who find patterns in what songs activate them
+- People processing grief, relationship patterns, or major life transitions
+- Psychology-curious users who want more than mood tracking
 
 ---
 
 ## 💡 **Core Value Propositions**
 
-### For Users:
-1. **"Understand Why Music Hits You"**
-   - Discover patterns in your emotional responses
-   - Connect songs to deeper psychological patterns
-   - Map your shadow through music
+### For Users (updated 2026-10-06):
+1. **"Say what you couldn't say. Send the song."**
+   - Understand what you feel before you share it
+   - Send a song with the real meaning behind it — not just a link
+   - The receiver sees what you meant, not what they assumed
 
-2. **"AI-Powered Shadow Work Insights"**
-   - Get automated reflections on your activations
-   - Identify wound types, protector modes, core beliefs
-   - Deepen self-awareness without expensive therapy sessions
+2. **"Understand Why Music Hits You"**
+   - AI surfaces the wound type, core belief, and nervous system pattern underneath
+   - 10 Jungian shadow archetypes map your emotional patterns over time
+   - The insight is yours — the AI helps you name what you already feel
 
-3. **"Privacy-First Emotional Journaling"**
-   - Your data stays yours
-   - Optional partner sharing (you control what's shared)
-   - No social media, no pressure
+3. **"Built for Two"**
+   - Both people in the relationship can use it
+   - When both use it, the receive side is also reflected — dialogue, not delivery
+   - Private web link means your partner receives it even without the app
 
-4. **"Pattern Recognition Without the Work"**
-   - Automatically detects correlations
-   - Surfaces insights you might miss
-   - Shows evolution over time
+4. **"Privacy-First Emotional Journaling"**
+   - Your data stays yours, no social feed, no public sharing
+   - You choose what goes in the envelope — the AI informs, you write
+   - No social media pressure, no algorithmic feed
 
 ---
 
 ## 🚀 **Marketing Strategy**
 
 ### Positioning Statement
-**"Music Shadow is the shadow work journal for music lovers — helping you understand why certain songs activate your nervous system and what that reveals about your inner landscape."**
+**"Music Shadow is a vulnerability tool for close relationships. Understand what a song means to you — then send it with your real feeling attached."**
 
 ### Key Messages
 
 #### Primary Message:
+**"Say what you couldn't say. Send the song."**
+
+#### Secondary Message (solo layer):
 **"Every song that hits you is a map to your shadow. Music Shadow helps you read the map."**
 
 #### Supporting Messages:
-- "Music doesn't just make you feel — it shows you who you are"
-- "Journal your shadow work through the songs that activate you"
-- "AI-powered insights meet music-driven self-discovery"
-- "Privacy-first emotional mapping"
+- "You can only share a feeling you've first understood yourself"
+- "Not just here's a song — here's what I meant to say"
+- "The AI surfaces it. You write it. They finally get it."
+- "Privacy-first emotional depth for people who matter to each other"
 
 ### Marketing Channels
 

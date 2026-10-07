@@ -12,9 +12,19 @@ This is a single source of truth for "what is the app right now." It separates t
 
 ## 1. The product, in one paragraph
 
-Music Shadow is a private, single-user **iOS shadow-work journal**. You log a song the moment it hits you — title, artist, time-in-song, intensity, body location, free journal. The app optionally fetches lyrics at the timestamp you logged, then calls an AI (Gemini, via a Supabase Edge Function) to write a reflection tied to that exact moment and lyric. Over time you see patterns (artist, body location, time of day, intensity trends), get assigned a "shadow archetype" (Abandoned Child, Lone Wolf, Overachiever, Invisible One, Mask, Ghost, Buried Fire, Defective One, Protector, Performer — 10 in code, 6 named in docs), and can optionally share individual activations with a "partner" by email.
+Music Shadow is an **iOS vulnerability tool for close relationships, built on a foundation of solo shadow work**. The core loop: a song hits you → you log it → AI surfaces what's underneath (wound type, core belief, nervous system pattern) → you understand what you feel → you send the song and your reflection to someone who matters to you → they see what you meant, not just a link.
 
-**Tagline (from docs):** *"Every song that hits you is a map to your shadow."*
+The solo shadow work (journaling, 10 Jungian archetypes, AI insights, pattern detection) is the prerequisite — it teaches you to understand your emotional responses to music. The share is the payoff. The partner feature is the product.
+
+**Two moats:** (1) both sides reflected — if both people in a relationship use it, the receiver is also tracking their own music-emotion responses, creating dialogue instead of delivery; (2) somatic + psychological grounding — music → body sensation → Jungian archetype → emotional language, at a depth no mainstream app reaches.
+
+**Tagline (from docs):** *"Every song that hits you is a map to your shadow."*  
+**Target tagline (toward):** *"Say what you couldn't say. Send the song."*
+
+---
+
+> **Product direction as of 2026-10-06 (office hours session):**  
+> Music Shadow is being reframed from a solo journal to a dyadic vulnerability tool. The partner feature — specifically the send flow and no-signup web receive experience — is now the highest-priority build. See `docs/office-hours-2026-10-06.md` for the full evaluation.
 
 ---
 
@@ -181,18 +191,24 @@ Each row uses:
 
 ### 6.6 The partner feature (cross-cutting, not in any single phase plan)
 
+> **Updated 2026-10-06:** The partner feature has been reframed. It is no longer "optional sharing of existing triggers." It is the **core product loop** — understand your feeling → write a reflection → send the song → partner receives it via a private web link (no signup required). See `docs/office-hours-2026-10-06.md`.
+
 | Piece | Status |
 |---|---|
 | `partner_links` table & schema | ✅ exists, FK to `auth.users`, UNIQUE on `owner_user_id` |
-| Settings UI for adding a partner | 🟡 in `SettingsView`, but only an `Email` field — no invite flow, no acceptance flow |
+| Settings UI for adding a partner | 🟡 in `SettingsView`, email field only — no invite flow, no acceptance flow |
 | `share_with_partner` + `partner_share_level` columns on events | ✅ columns exist |
 | Client `PartnerFeedView` | 🟡 stub — empty list, no fetch |
-| Client `PartnerTriggerDetailView` | 🟡 reachable, reads from `event`, but data path is broken |
+| Client `PartnerTriggerDetailView` | 🟡 reachable, data path broken |
 | RLS that lets a partner read shared events | ❌ **none.** `(user_id = auth.uid())` denies all cross-user SELECT |
-| Server-side partner invite / accept / revoke RPC | ❌ **none.** No `auth.users.email`→`partner_links.partner_email` join logic |
-| Migration 4 (the partner-read policy) | ❌ **pending.** Spec'd but not written. |
+| Server-side partner invite / accept / revoke RPC | ❌ **none** |
+| Migration 4 (the partner-read policy) | ❌ **pending** — spec exists in `docs/partner-feature-spec.md` |
+| **Send flow** — "Send this song" after insight, write your own note | ❌ **not started** |
+| **Web receive page** — private link, no signup required, song + reflection | ❌ **not started** — this is the growth loop |
+| **`song_shares` table** — stores send token, sender note, song details | ❌ **not started** |
+| Onboarding reframe — "understand yourself first, then share" | ❌ **not started** |
 
-The honest summary: **the partner feature is roughly 25% built.** The schema and lock-down are real. The "partner can see anything" half is entirely a UI shell.
+The honest summary: **the partner feature is roughly 20% built** (schema and RLS groundwork are real; the send/receive loop that is now the core product does not exist). Every other in-progress item in the app is secondary to building this loop.
 
 ---
 
@@ -207,7 +223,7 @@ Ordered by impact, not by phase:
 - **Partner feature doesn't work.** User-facing UI implies sharing; nothing arrives at the partner. Needs Migration 4 + likely a real invite RPC. Realistic effort: **2-4 hours of spec + 1-2 hours of SQL.**
 - **MusicKit is disabled.** `MUSICKIT_SETUP.md` documents the setup but it's not wired; `MusicSearchService.swift` is a placeholder. Either ship it or rip it out (currently it's dead code in production).
 
-### S2 — iOS polish gaps vs. doc claims
+{### S2 — iOS polish gaps vs. doc claims
 - Pull-to-refresh on dashboard / AllTriggers / Patterns — adds 4 lines each.
 - Swipe actions on trigger rows — adds ~30 lines.
 - Pagination — only matters at 100+ rows; you're at 51.
@@ -228,7 +244,7 @@ These are things the docs say that aren't true (or vice versa):
 | Doc says | Reality |
 |---|---|
 | `PHASE_STATUS_CHECK.md`: "Pagination: not done" | ✅ confirms — still true tonight |
-| `PHASE_STATUS_CHECK.md`: "Search: not done" | ❌ **out of date** — QA-pass added `.searchable` to `AllTriggersView` |
+| `PHASE_STATUS_CHECK.md`: "Search: not done" | ❌ **out of date** — QA-pass added `.searchable` to `AllTrig  m` |
 | `PHASE_STATUS_CHECK.md`: "Milestone celebrations: not done" | ❌ **out of date** — code ships it; only the reset-on-erase path triggers it currently |
 | `PHASE_STATUS_CHECK.md`: "Pull-to-refresh 1/4 views" | ✅ still accurate |
 | `PHASE_STATUS_CHECK.md`: "Swipe actions: not done" | ✅ still accurate |
@@ -281,16 +297,27 @@ What they **cannot** do:
 
 ---
 
-## 11. If I had to prioritize the next 4 weeks
+## 11. Priority build order (updated 2026-10-06)
 
-Best ROI, in order:
+The product has been reframed as a **dyadic vulnerability tool** — understand yourself through music, then share that understanding with someone who matters. The solo features (journaling, archetypes, insights) are the foundation. The send + receive loop is the product. Build in this order:
 
-1. **Migration 4 + partner invite RPC** — turns the partner feature from a UI lie into a real product. 4-6 hours.
-2. **Update the two stale docs** (`PHASE_STATUS_CHECK.md`, `CURRENT_STATE_AND_MARKETING.md`) — 30 min each, prevents the drift from getting worse.
-3. **Decide on MusicKit**: ship it or delete the stub. Otherwise it's documentation fraud.
-4. **Pull-to-refresh + swipe actions on `AllTriggersView`** — one sitting, ~1 hour, big UX win.
-5. **Live-device QA** — requires either migrating to `@Observable` + SPM + a connected device, OR accepting the static-QA ceiling. Decide explicitly.
-6. **Pagination in `AllTriggersView`** — only matters after you ship growth; defer until ~100+ activations per user.
+### Tier 1 — Enables the core loop (do first)
+1. **Migration 4 + partner invite RPC** — RLS policy for cross-user reads, invite flow, `partner_links.status` enum. Blocks everything below. ~4-6 hours.
+2. **`song_shares` table** — new table: `id`, `event_id`, `sender_id`, `sender_note` (the reflection in the sender's own words), `share_token` (UUID, public), `created_at`. ~30 min SQL.
+3. **Send flow in the app** — after getting an AI insight, "Send this song" button → sender sees the AI insight as context → writes a short note in their own words → generates a `song_shares` row + private link. ~3-4 hours iOS.
+4. **Web receive page** — a Supabase Edge Function (or simple web page) served at a stable URL, takes `?token=<uuid>`, returns a page showing: song, sender's reflection. No account required. CTA at bottom: "Want to understand what music says about you?" → App Store link. ~2-3 hours. This is the growth loop.
 
-What I'd skip:
-- Phase 5 work until product/partner are solid. Building Apple Watch on top of a half-built partner feature is a recipe for compounding tech debt.
+### Tier 2 — Polish the foundation
+5. **Pull-to-refresh + swipe actions on `AllTriggersView`** — ~1 hour, big UX win.
+6. **Decide on MusicKit** — ship it or delete the stub. ~30 min decision + 30 min execution.
+7. **Onboarding reframe** — rewrite to communicate "understand yourself first, then share." ~1-2 hours.
+
+### Tier 3 — Defer explicitly
+- **Phase 5** (Watch, Widgets, Siri, ML, iCloud, iPad) — deferred until Tier 1 is proven.
+- **More archetypes** — 10 is enough. Stop here.
+- **Pagination** — only matters at 100+ events per user; not there yet.
+- **Live-device QA migration** — valuable but not blocking Tier 1.
+
+What I'd skip entirely:
+- Building Apple Watch on top of an unshipped send/receive loop is compounding debt on unproven product.
+- Any Phase 5 work before at least one person has used the send → receive → felt-something loop.

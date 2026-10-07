@@ -1,10 +1,39 @@
 # Next 4 Weeks — Executable Plan
 
-**Generated:** 2026-08-22
-**Source:** Priorities section of `APP_MAP.md` §11
-**Scope:** six items, sequenced so each builds on the previous one's output. **Phase 5 (Watch, Widgets, Siri, ML, iCloud, iPad-Mac) is explicitly out of scope** — defer until the partner feature is real.
+**Generated:** 2026-08-22  
+**Updated:** 2026-10-06 — product reframed as dyadic vulnerability tool after office hours session. See `docs/office-hours-2026-10-06.md`.  
+**Source:** `APP_MAP.md` §11 (updated priorities)  
+**Scope:** Build the send + receive loop that is now the core product. Phase 5 (Watch, Widgets, Siri, ML, iCloud, iPad-Mac) explicitly deferred.
 
-Total estimated effort: **~22-32 hours of focused work**, spread over 4 calendar weeks assuming ~6-8 hours/week. Realistic if you treat this as your only project; aggressive if it isn't.
+Total estimated effort: **~18-26 hours of focused work**, spread over 4 calendar weeks.
+
+---
+
+## New sequencing (updated 2026-10-06)
+
+```
+Week 1:  [0] Migration 4 + partner invite RPC  (blocks everything)
+              │
+              ├── unlocks cross-user reads
+              │
+Week 1-2:[1] song_shares table + send flow in iOS
+              │
+              ├── enables sending
+              │
+Week 2-3:[2] Web receive page (Edge Function)  ← the growth loop
+              │
+Week 3:  [3] iOS polish: pull-to-refresh + swipe actions
+              │
+Week 4:  [4] Onboarding reframe + MusicKit decision
+```
+
+Why this order:
+- **[0] first** — RLS and partner invite are the foundation. Nothing else is real without them.
+- **[1] before [2]** — need the `song_shares` row to exist before the web page can serve it.
+- **[2] is the growth loop** — every send is a potential new user. Ship this before polishing other things.
+- **[3] and [4] are polish** — valuable but not blocking the core loop.
+
+---
 
 ---
 
