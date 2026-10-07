@@ -56,3 +56,54 @@ describe("positive prompt content", () => {
     expect(POSITIVE_MOMENT_TAIL).not.toContain("the wound, protector, and belief");
   });
 });
+
+import {
+  LIGHT_ARCHETYPE_DEFS,
+  SHADOW_ARCHETYPE_DEFS,
+  archetypeInstructionFor,
+  parseArchetype,
+} from "./prompts.ts";
+
+describe("archetype classification", () => {
+  test("shadow instruction lists only the ten shadow archetypes", () => {
+    const t = archetypeInstructionFor("shadow");
+    for (const [name] of SHADOW_ARCHETYPE_DEFS) expect(t).toContain(`- ${name}:`);
+    for (const [name] of LIGHT_ARCHETYPE_DEFS) expect(t).not.toContain(`- ${name}:`);
+    expect(SHADOW_ARCHETYPE_DEFS.length).toBe(10);
+  });
+  test("positive instruction lists only the ten light archetypes", () => {
+    const t = archetypeInstructionFor("positive");
+    for (const [name] of LIGHT_ARCHETYPE_DEFS) expect(t).toContain(`- ${name}:`);
+    for (const [name] of SHADOW_ARCHETYPE_DEFS) expect(t).not.toContain(`- ${name}:`);
+    expect(LIGHT_ARCHETYPE_DEFS.length).toBe(10);
+  });
+  test("asks for the three keys and says one hit is weak evidence", () => {
+    const t = archetypeInstructionFor(null);
+    for (const k of ["archetype:", "archetype_confidence:", "archetype_evidence:"]) expect(t).toContain(k);
+    expect(t).toContain("weak evidence");
+  });
+  test("accepts a valid pick, normalising case and the leading 'The'", () => {
+    expect(parseArchetype({ archetype: "ghost", archetype_confidence: "HIGH", archetype_evidence: " felt nothing " }, "shadow"))
+      .toEqual({ archetype: "The Ghost", confidence: "high", evidence: "felt nothing" });
+  });
+  test("none, missing and non-string values give null", () => {
+    expect(parseArchetype({ archetype: "none" }, "shadow")).toBeNull();
+    expect(parseArchetype({ archetype: "" }, "shadow")).toBeNull();
+    expect(parseArchetype({}, "shadow")).toBeNull();
+    expect(parseArchetype({ archetype: 7 }, "shadow")).toBeNull();
+    expect(parseArchetype(null, "shadow")).toBeNull();
+  });
+  test("rejects an archetype from the other set", () => {
+    expect(parseArchetype({ archetype: "The Open Heart" }, "shadow")).toBeNull();
+    expect(parseArchetype({ archetype: "The Ghost" }, "positive")).toBeNull();
+  });
+  test("missing or invalid confidence falls back to low; evidence is capped", () => {
+    expect(parseArchetype({ archetype: "The Maker", archetype_confidence: "certain" }, "positive")?.confidence).toBe("low");
+    const long = "x".repeat(400);
+    expect(parseArchetype({ archetype: "The Maker", archetype_evidence: long }, "positive")?.evidence?.length).toBe(240);
+  });
+  test("the pinned prompts are untouched by this addition", () => {
+    expect(SHADOW_SYSTEM_PROMPT).not.toContain("archetype");
+    expect(POSITIVE_SYSTEM_PROMPT).not.toContain("archetype");
+  });
+});

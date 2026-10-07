@@ -3,7 +3,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { momentTailFor, systemPromptFor } from "./prompts.ts";
+import { archetypeInstructionFor, momentTailFor, parseArchetype, systemPromptFor } from "./prompts.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -195,7 +195,7 @@ serve(async (req) => {
         ? `\n\n--- THE EXACT MOMENT IN THE SONG (use this in your reflection) ---\n${songContext.join("\n")}\n---${momentTailFor(row.valence)}`
         : "";
 
-    const systemPrompt = systemPromptFor(row.valence);
+    const systemPrompt = systemPromptFor(row.valence) + archetypeInstructionFor(row.valence);
 
     const userPrompt = `The user logged an activation with:
 - Body location: ${row.body_location ?? "—"}
@@ -234,7 +234,7 @@ Produce the JSON reflection.`;
       ],
       generationConfig: {
         temperature: 0.7,
-        maxOutputTokens: 1024,
+        maxOutputTokens: 1280,
         responseMimeType: "application/json",
       },
     };
@@ -293,7 +293,8 @@ Produce the JSON reflection.`;
       });
     }
 
-    const { error: insertError } = await supabase.from("shadow_insights").insert({
+    const pick = parseArchetype(parsed, row.valence);
+    const insightRow = {
       id: crypto.randomUUID(),
       event_id: eventId,
       user_id: row.user_id,
@@ -302,7 +303,17 @@ Produce the JSON reflection.`;
       core_belief: parsed.core_belief ?? null,
       summary: parsed.summary ?? null,
       suggested_practice: parsed.suggested_practice ?? null,
+    };
+    let { error: insertError } = await supabase.from("shadow_insights").insert({
+      ...insightRow,
+      archetype: pick?.archetype ?? null,
+      archetype_confidence: pick?.confidence ?? null,
+      archetype_evidence: pick?.evidence ?? null,
     });
+    // Deployed before the archetype columns exist: keep saving the reflection without them.
+    if (insertError && /archetype/i.test(insertError.message)) {
+      ({ error: insertError } = await supabase.from("shadow_insights").insert(insightRow));
+    }
 
     if (insertError) {
       return new Response(

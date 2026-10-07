@@ -284,6 +284,67 @@ struct LightArchetypeTests {
         #expect(byType[.steadyOne] == 1)
     }
 
+    @Test func aiPickCountsByConfidenceAndSkipsKeywordGuessing() {
+        let e = event(valence: "shadow")
+        var i = insight(for: e, summary: "Feels numb and disconnected, like going through the motions.")
+        i.archetype = "The Ghost"; i.archetype_confidence = "high"
+        let scores = ArchetypeEngine.scores(from: [i], events: [e])
+        let byType = Dictionary(uniqueKeysWithValues: scores.map { ($0.archetype, $0.score) })
+        #expect(byType[.ghost] == 3)   // the pick only; the keywords in the summary add nothing
+    }
+
+    @Test func confidenceWeightsAreThreeTwoOne() {
+        func weight(_ c: String?) -> Int {
+            var i = insight(for: event(valence: "shadow"))
+            i.archetype = "The Mask"; i.archetype_confidence = c
+            return i.pickWeight
+        }
+        #expect(weight("high") == 3 && weight("MEDIUM") == 2 && weight("low") == 1 && weight(nil) == 1)
+    }
+
+    @Test func insightsWithoutAPickStillScoreByKeywords() {
+        let e = event(valence: "shadow")
+        let i = insight(for: e, summary: "Feels numb and disconnected.")
+        let scores = ArchetypeEngine.scores(from: [i], events: [e])
+        #expect((scores.first { $0.archetype == .ghost }?.score ?? 0) > 0)
+    }
+
+    @Test func nonePicksAndUnknownNamesFallBackToKeywords() {
+        let e = event(valence: "shadow")
+        for name in ["none", "None", "The Invented One", ""] {
+            var i = insight(for: e, summary: "Feels numb and disconnected.")
+            i.archetype = name; i.archetype_confidence = "high"
+            #expect(i.pickedArchetype == nil)
+            #expect((ArchetypeEngine.scores(from: [i], events: [e]).first { $0.archetype == .ghost }?.score ?? 0) > 0)
+        }
+    }
+
+    @Test func pickNamesMatchIgnoringCaseAndLeadingThe() {
+        var i = insight(for: event(valence: "shadow"))
+        i.archetype = "buried fire"
+        #expect(i.pickedArchetype == .buriedFire)
+        i.archetype = "  The Buried Fire "
+        #expect(i.pickedArchetype == .buriedFire)
+    }
+
+    @Test func aLightPickOnAShadowHitIsIgnored() {
+        let e = event(valence: "shadow")
+        var i = insight(for: e, summary: "")
+        i.archetype = "The Open Heart"; i.archetype_confidence = "high"
+        let scores = ArchetypeEngine.scores(from: [i], events: [e])
+        #expect(scores.allSatisfy { $0.archetype.kind == .shadow })
+        #expect(scores.isEmpty)
+    }
+
+    @Test func aLightPickOnAPositiveHitCountsByConfidence() {
+        let e = event(valence: "positive")
+        var i = insight(for: e, summary: "")
+        i.archetype = "The Maker"; i.archetype_confidence = "medium"
+        let scores = ArchetypeEngine.lightScores(from: [i], events: [e])
+        let byType = Dictionary(uniqueKeysWithValues: scores.map { ($0.archetype, $0.score) })
+        #expect(byType[.maker] == 2)
+    }
+
     @Test func lightScoringIgnoresShadowHits() {
         let shadow = event(valence: "shadow", impulse: "cling")
         let i = insight(for: shadow, summary: "Tenderness and belonging, joy and freedom.")

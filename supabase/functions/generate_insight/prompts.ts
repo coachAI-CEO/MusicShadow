@@ -45,3 +45,74 @@ export function systemPromptFor(valence: Valence): string {
 export function momentTailFor(valence: Valence): string {
   return isPositive(valence) ? POSITIVE_MOMENT_TAIL : SHADOW_MOMENT_TAIL;
 }
+
+// --- Archetype classification -------------------------------------------------------------
+// Appended after the pinned prompts above (never edited into them). The model picks one archetype
+// per activation from a fixed list so the app can total real picks instead of counting keywords.
+
+export type ArchetypeDef = readonly [name: string, definition: string];
+
+export const SHADOW_ARCHETYPE_DEFS: readonly ArchetypeDef[] = [
+  ["The Abandoned Child", "fear of being left or forgotten; longing for care; spikes when connection feels uncertain"],
+  ["The Lone Wolf", "relies on no one; withdraws and carries everything alone; self-reliance as safety"],
+  ["The Overachiever", "worth tied to performance and being perfect; rest feels unsafe; criticism lands as failure"],
+  ["The Invisible One", "hides needs and presence; shrinks, stays quiet, avoids being seen"],
+  ["The Protector", "always on guard; manages danger and control; shuts feelings down quickly"],
+  ["The Mask", "shows what is acceptable and hides what is real; keeps it together"],
+  ["The Performer", "earns love by entertaining, pleasing or caretaking; being deeply seen feels exposing"],
+  ["The Ghost", "numb, flat or disconnected from feeling and the body; going through the motions"],
+  ["The Buried Fire", "anger swallowed or turned inward; self-criticism, flat heaviness, sudden rage that feels foreign"],
+  ["The Defective One", "core shame; a quiet verdict that something is fundamentally wrong with me"],
+];
+
+export const LIGHT_ARCHETYPE_DEFS: readonly ArchetypeDef[] = [
+  ["The Open Heart", "moved without defence; tenderness, tears, softening"],
+  ["The Free One", "room to breathe and be fully oneself; release, lightness, unguarded"],
+  ["The Celebrant", "joy, delight and aliveness; an urge to move, sing or laugh"],
+  ["The Connector", "closeness; thinking of a specific person; the wish to share it"],
+  ["The Held One", "feeling cared for and safe; trusting that others will stay"],
+  ["The Embodied One", "fully present in the body; chills, warmth, a pulse that can be followed"],
+  ["The Fire Keeper", "anger or intensity that clarifies; a boundary, fuel, standing up for something"],
+  ["The Whole One", "nothing to fix; worth without proving anything"],
+  ["The Steady One", "the guard comes down because it feels safe enough; grounded and settled"],
+  ["The Maker", "an urge to create, write, build or play"],
+];
+
+export const CONFIDENCE_LEVELS = ["low", "medium", "high"] as const;
+export type Confidence = (typeof CONFIDENCE_LEVELS)[number];
+
+export function archetypeDefsFor(valence: Valence): readonly ArchetypeDef[] {
+  return isPositive(valence) ? LIGHT_ARCHETYPE_DEFS : SHADOW_ARCHETYPE_DEFS;
+}
+
+export function archetypeInstructionFor(valence: Valence): string {
+  const defs = archetypeDefsFor(valence);
+  const list = defs.map(([name, def]) => `- ${name}: ${def}`).join("\n");
+  const kind = isPositive(valence) ? "positive" : "wound";
+  return `
+
+Also classify this single activation. Add three more keys to the same JSON object:
+- archetype: exactly one name from the list below, copied exactly, or "none" if this activation does not clearly fit any of them.
+- archetype_confidence: "low", "medium" or "high". One activation is weak evidence, so use "low" unless the user's own words clearly point to one pattern.
+- archetype_evidence: a short phrase of at most 20 words quoted or closely paraphrased from what the USER wrote or felt (journal, guided answers, body response) that supports your pick. Do not use the lyrics as evidence. Use an empty string when archetype is "none".
+
+Choose from these ${kind} archetypes only:
+${list}`;
+}
+
+export type ArchetypePick = { archetype: string; confidence: Confidence; evidence: string | null };
+
+const norm = (s: string) => s.trim().toLowerCase().replace(/^the\s+/, "");
+
+/** Validate the model's archetype keys against the list for this valence. Returns null for none/unknown. */
+export function parseArchetype(parsed: Record<string, unknown> | null | undefined, valence: Valence): ArchetypePick | null {
+  const raw = parsed?.archetype;
+  if (typeof raw !== "string") return null;
+  if (norm(raw) === "none" || norm(raw) === "") return null;
+  const match = archetypeDefsFor(valence).find(([name]) => norm(name) === norm(raw));
+  if (!match) return null;
+  const c = typeof parsed?.archetype_confidence === "string" ? parsed.archetype_confidence.trim().toLowerCase() : "";
+  const confidence = (CONFIDENCE_LEVELS as readonly string[]).includes(c) ? (c as Confidence) : "low";
+  const ev = typeof parsed?.archetype_evidence === "string" ? parsed.archetype_evidence.trim().slice(0, 240) : "";
+  return { archetype: match[0], confidence, evidence: ev || null };
+}

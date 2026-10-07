@@ -368,6 +368,30 @@ enum ShadowArchetype: String, CaseIterable, Identifiable {
     var navigationTitle: String { kind == .light ? "Light archetype" : "Shadow archetype" }
 }
 
+// MARK: - AI archetype pick
+
+extension ShadowInsight {
+    /// The archetype the AI picked for this activation, matched ignoring case and a leading "The".
+    var pickedArchetype: ShadowArchetype? {
+        func norm(_ s: String) -> String {
+            var t = s.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            if t.hasPrefix("the ") { t.removeFirst(4) }
+            return t
+        }
+        guard let name = archetype, !norm(name).isEmpty, norm(name) != "none" else { return nil }
+        return ShadowArchetype.allCases.first { norm($0.rawValue) == norm(name) }
+    }
+
+    /// How much one AI pick counts: one activation is weak evidence, so only a high-confidence pick counts fully.
+    var pickWeight: Int {
+        switch (archetype_confidence ?? "").lowercased() {
+        case "high":   return 3
+        case "medium": return 2
+        default:       return 1
+        }
+    }
+}
+
 // MARK: - Score wrapper
 
 struct ArchetypeScore: Identifiable {
@@ -393,6 +417,11 @@ struct ArchetypeEngine {
 
         // 1) AI insights (same logic as PatternsView for consistency)
         for insight in insights where !positiveEventIds.contains(insight.event_id) {
+            // A real AI pick beats keyword guessing. Older insights have no pick and still use keywords below.
+            if let pick = insight.pickedArchetype, pick.kind == .shadow {
+                bump(pick, by: insight.pickWeight)
+                continue
+            }
             let blob = [
                 insight.wound_type,
                 insight.protector_mode,
@@ -508,6 +537,10 @@ struct ArchetypeEngine {
         let positiveIds = Set(positiveEvents.map { $0.id })
 
         for insight in insights where positiveIds.contains(insight.event_id) {
+            if let pick = insight.pickedArchetype, pick.kind == .light {
+                bump(pick, by: insight.pickWeight)
+                continue
+            }
             let blob = [insight.wound_type, insight.protector_mode, insight.core_belief, insight.summary]
                 .compactMap { $0?.lowercased() }
                 .joined(separator: " ")

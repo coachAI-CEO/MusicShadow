@@ -14,4 +14,9 @@ struct ShadowInsight: Identifiable, Codable {
     let core_belief: String?
     let summary: String?
     let suggested_practice: String?
+
+    // The archetype the AI picked for this activation (nil on older insights).
+    var archetype: String? = nil
+    var archetype_confidence: String? = nil
+    var archetype_evidence: String? = nil
 }
