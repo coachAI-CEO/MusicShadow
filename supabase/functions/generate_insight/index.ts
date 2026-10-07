@@ -218,7 +218,7 @@ Produce the JSON reflection.`;
       );
     }
 
-    const modelPrimary = Deno.env.get("GEMINI_MODEL_PRIMARY") ?? "gemini-3-flash-preview";
+    const modelPrimary = Deno.env.get("GEMINI_MODEL_PRIMARY") ?? "gemini-3.5-flash-lite";
     const modelFallback = Deno.env.get("GEMINI_MODEL_FALLBACK") ?? "gemini-2.5-flash";
     const models = [modelPrimary, modelFallback];
 

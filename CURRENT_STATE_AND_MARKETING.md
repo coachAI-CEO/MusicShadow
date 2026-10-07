@@ -68,7 +68,7 @@ The solo features (journaling, AI insights, 10 shadow archetypes (Music Shadow's
 - **AI Reflection (generate_insight Edge Function)**:
   - Lyrics at spike time: Fetches lyrics (LRCLIB), finds line(s) at user’s timestamp, weaves them into the reflection
   - Optional song/artist, lyrics snippet, and timestamp in activation form
-  - Primary/fallback Gemini models (gemini-3-flash-preview, gemini-2.5-flash) via env
+  - Primary/fallback Gemini models (gemini-3.5-flash-lite, gemini-2.5-flash) via env
   - Prompt requires reflection to cite the exact moment in the song and lyric snippets (no generic summaries)
   - JSON output: wound_type, protector_mode, core_belief, summary, suggested_practice
 - **New Activation Flow**:

@@ -9,7 +9,7 @@ The iOS app calls the `generate_insight` Supabase Edge Function so the AI reflec
 | Secret | Required | Description |
 |--------|----------|-------------|
 | **GEMINI_API_KEY** | Yes | Google AI API key for Gemini. |
-| **GEMINI_MODEL_PRIMARY** | No | Model to try first. Default: `gemini-3-flash-preview`. |
+| **GEMINI_MODEL_PRIMARY** | No | Model to try first. Default: `gemini-3.5-flash-lite`. |
 | **GEMINI_MODEL_FALLBACK** | No | Model to try if primary fails (API error, empty, or invalid JSON). Default: `gemini-2.5-flash`. |
 
 ---
