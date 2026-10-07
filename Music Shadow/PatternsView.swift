@@ -70,6 +70,19 @@ struct PatternsView: View {
                             )
                         }
 
+                        // 4b) Light archetype snapshot (from positive hits only)
+                        let lightScores = ArchetypeEngine.lightScores(from: insights, events: events)
+                        if !lightScores.isEmpty {
+                            ShadowArchetypeCard(
+                                primary: lightScores.first,
+                                secondary: lightScores.count > 1 ? lightScores[1] : nil,
+                                title: "Light archetype",
+                                blurb: "What your positive hits point to: the songs that open, free or connect you. It updates as you log more.",
+                                emptyText: "Log a few positive hits with reflections to see what lifts you.",
+                                secondaryLabel: "Also showing up:"
+                            )
+                        }
+
                         // 5) AI Themes snapshot
                         if !insights.isEmpty {
                             AIThemesCard(insights: insights)

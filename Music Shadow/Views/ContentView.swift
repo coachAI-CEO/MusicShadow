@@ -544,12 +544,7 @@ struct HeroArchetypeCard: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 16) {
-            Image(archetype.archetype.iconName)
-                .resizable()
-                .renderingMode(.template)
-                .foregroundColor(MSTheme.primaryText)
-                .scaledToFit()
-                .frame(width: 56, height: 56)
+            ArchetypeIcon(archetype: archetype.archetype, size: 56)
 
             VStack(alignment: .leading, spacing: 6) {
                 Text("Shadow archetype")
@@ -592,12 +587,7 @@ struct ShadowArchetypeDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 HStack(spacing: 14) {
-                    Image(archetype.iconName)
-                        .resizable()
-                        .renderingMode(.template)
-                        .foregroundColor(MSTheme.primaryText)
-                        .scaledToFit()
-                        .frame(width: 64, height: 64)
+                    ArchetypeIcon(archetype: archetype, size: 64)
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text(archetype.rawValue)
@@ -609,7 +599,7 @@ struct ShadowArchetypeDetailView: View {
                             .foregroundColor(MSTheme.secondaryText)
                             .fixedSize(horizontal: false, vertical: true)
                         
-                        Text("This is a protective pattern that developed to keep you safe.")
+                        Text(archetype.detailIntro)
                             .font(.caption)
                             .foregroundColor(MSTheme.secondaryText.opacity(0.75))
                             .padding(.top, 2)
@@ -626,7 +616,7 @@ struct ShadowArchetypeDetailView: View {
                 )
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("How this pattern tends to feel")
+                    Text(archetype.feelsLikeTitle)
                         .font(.headline)
                         .foregroundColor(MSTheme.secondaryText)
 
@@ -638,7 +628,7 @@ struct ShadowArchetypeDetailView: View {
                 .shadowCard()
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Core wound it protects")
+                    Text(archetype.coreWoundTitle)
                         .font(.headline)
                         .foregroundColor(MSTheme.secondaryText)
 
@@ -650,7 +640,7 @@ struct ShadowArchetypeDetailView: View {
                 .shadowCard()
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Nervous system pattern")
+                    Text(archetype.nervousSystemTitle)
                         .font(.headline)
                         .foregroundColor(MSTheme.secondaryText)
 
@@ -662,7 +652,7 @@ struct ShadowArchetypeDetailView: View {
                 .shadowCard()
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Growth invitation")
+                    Text(archetype.growthTitle)
                         .font(.headline)
                         .foregroundColor(MSTheme.secondaryText)
 
@@ -671,7 +661,7 @@ struct ShadowArchetypeDetailView: View {
                         .foregroundColor(MSTheme.primaryText)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    Text("You don't have to change everything at once. Small experiments count.")
+                    Text(archetype.growthNote)
                         .font(.caption)
                         .foregroundColor(MSTheme.secondaryText.opacity(0.75))
                         .padding(.top, 6)
@@ -680,7 +670,7 @@ struct ShadowArchetypeDetailView: View {
                 .padding(.top, 8)
 
                 // Soft closing integration line
-                Text("This pattern isn't a problem — it's a protector that learned early.")
+                Text(archetype.detailClosing)
                     .font(.caption)
                     .foregroundColor(MSTheme.secondaryText.opacity(0.75))
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -692,7 +682,7 @@ struct ShadowArchetypeDetailView: View {
             .padding(24)
         }
         .musicShadowBackground()
-        .navigationTitle("Shadow archetype")
+        .navigationTitle(archetype.navigationTitle)
         .navigationBarTitleDisplayMode(.inline)
     }
 }
@@ -744,7 +734,22 @@ struct ShadowArchetypeLearnMoreView: View {
                         .foregroundColor(MSTheme.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    ForEach(ShadowArchetype.allCases) { archetype in
+                    ForEach(ShadowArchetype.shadowCases) { archetype in
+                        ArchetypeLearnMoreRow(archetype: archetype)
+                    }
+
+                    Divider().background(MSTheme.cardStroke).padding(.vertical, 4)
+
+                    Text("Light archetypes")
+                        .font(.headline)
+                        .foregroundColor(MSTheme.secondaryText)
+
+                    Text("Positive hits point to these. They describe what lifts you, not a wound.")
+                        .font(.caption)
+                        .foregroundColor(MSTheme.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    ForEach(ShadowArchetype.lightCases) { archetype in
                         ArchetypeLearnMoreRow(archetype: archetype)
                     }
                 }
@@ -783,12 +788,7 @@ private struct ArchetypeLearnMoreRow: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            Image(archetype.iconName)
-                .resizable()
-                .renderingMode(.template)
-                .foregroundColor(MSTheme.primaryText)
-                .scaledToFit()
-                .frame(width: 36, height: 36)
+            ArchetypeIcon(archetype: archetype, size: 36)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(archetype.rawValue)

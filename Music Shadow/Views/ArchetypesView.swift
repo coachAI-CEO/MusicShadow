@@ -24,6 +24,10 @@ struct ArchetypesView: View {
         ArchetypeEngine.scores(from: activeInsights, events: activeEvents)
     }
 
+    private var lightScores: [ArchetypeScore] {
+        ArchetypeEngine.lightScores(from: activeInsights, events: activeEvents)
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
@@ -34,7 +38,7 @@ struct ArchetypesView: View {
                         .font(.largeTitle.bold())
                         .foregroundColor(MSTheme.primaryText)
                     
-                    Text("The protective patterns your nervous system uses most often.")
+                    Text("The protective patterns your nervous system uses most often, and the songs that lift you.")
                         .font(.subheadline)
                         .foregroundColor(MSTheme.secondaryText)
                 }
@@ -89,14 +93,51 @@ struct ArchetypesView: View {
                         .shadowCard()
                 }
                 
-                // OTHER ARCHETYPES GRID
+                // LIGHT ARCHETYPE (from positive hits)
+                if let light = lightScores.first {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Text("What lifts you")
+                                .font(.headline)
+                                .foregroundColor(MSTheme.Colors.accentPrimary)
+                            Spacer()
+                            Text("\(light.score) matches")
+                                .font(.caption2)
+                                .foregroundColor(MSTheme.secondaryText)
+                        }
+
+                        NavigationLink(destination: ShadowArchetypeDetailView(archetype: light.archetype)) {
+                            HStack(alignment: .top, spacing: 16) {
+                                ArchetypeIcon(archetype: light.archetype, size: 56)
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text(light.archetype.rawValue)
+                                        .font(.title3.weight(.semibold))
+                                        .foregroundColor(MSTheme.primaryText)
+                                    Text(light.archetype.tagline)
+                                        .font(.footnote)
+                                        .foregroundColor(MSTheme.secondaryText)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                            }
+                            .padding(20)
+                            .shadowCard()
+                        }
+                        .buttonStyle(PlainButtonStyle())
+
+                        Text("From your positive hits: the songs that open, free or connect you.")
+                            .font(.caption)
+                            .foregroundColor(MSTheme.secondaryText)
+                    }
+                }
+
+                // SHADOW ARCHETYPES GRID
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("All Archetypes")
+                    Text("Shadow archetypes")
                         .font(.headline)
                         .foregroundColor(MSTheme.secondaryText)
-                    
+
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                        ForEach(ShadowArchetype.allCases) { archetype in
+                        ForEach(ShadowArchetype.shadowCases) { archetype in
                             NavigationLink(destination: ShadowArchetypeDetailView(archetype: archetype)) {
                                 ArchetypeGridItem(
                                     archetype: archetype,
@@ -108,7 +149,27 @@ struct ArchetypesView: View {
                         }
                     }
                 }
-                
+
+                // LIGHT ARCHETYPES GRID
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Light archetypes")
+                        .font(.headline)
+                        .foregroundColor(MSTheme.secondaryText)
+
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                        ForEach(ShadowArchetype.lightCases) { archetype in
+                            NavigationLink(destination: ShadowArchetypeDetailView(archetype: archetype)) {
+                                ArchetypeGridItem(
+                                    archetype: archetype,
+                                    score: lightScores.first(where: { $0.archetype == archetype })?.score ?? 0,
+                                    isPrimary: lightScores.first?.archetype == archetype
+                                )
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
+                    }
+                }
+
                 // LEARN MORE
                 NavigationLink(destination: ShadowArchetypeLearnMoreView()) {
                     HStack {
@@ -207,12 +268,7 @@ struct ArchetypeGridItem: View {
     var body: some View {
         VStack(spacing: 12) {
             ZStack(alignment: .topTrailing) {
-                Image(archetype.iconName)
-                    .resizable()
-                    .renderingMode(.template)
-                    .foregroundColor(isPrimary ? MSTheme.Colors.accentPrimary : MSTheme.primaryText)
-                    .aspectRatio(contentMode: .fit)
-                    .frame(height: 40)
+                ArchetypeIcon(archetype: archetype, size: 40, color: isPrimary ? MSTheme.Colors.accentPrimary : MSTheme.primaryText)
                 
                 if score > 0 {
                     Text("\(score)")

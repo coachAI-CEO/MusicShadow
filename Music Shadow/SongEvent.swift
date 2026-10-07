@@ -36,6 +36,11 @@ struct SongEvent: Identifiable, Decodable {
     let source_context: String?
     let ai_reason: String?
 
+    /// True for hits logged as "Positive hit" (stored as `positive`).
+    var isPositive: Bool {
+        (valence ?? "").lowercased() == "positive"
+    }
+
     var isPartnerShareLevelMinimal: Bool {
         (partner_share_level ?? "").lowercased() == "minimal"
     }
