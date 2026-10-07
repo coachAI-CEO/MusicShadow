@@ -382,3 +382,79 @@ struct LightArchetypeTests {
         #expect(scores.first?.score == 2)
     }
 }
+
+// MARK: - Capture what's playing
+
+struct NowPlayingCaptureTests {
+    private struct Fake: NowPlayingSource {
+        let outcome: CaptureOutcome
+        func capture() async -> CaptureOutcome { outcome }
+    }
+
+    private func song(_ title: String, source: CapturedSong.Source = .appleMusic) -> CapturedSong {
+        CapturedSong(title: title, artist: "Artist", seconds: 42, source: source)
+    }
+
+    @Test func makeTrimsTextAndDropsEmptyTitles() {
+        let s = CapturedSong.make(title: "  Rain \n", artist: " Sleep Token ", seconds: 127.9, source: .shazam)
+        #expect(s == CapturedSong(title: "Rain", artist: "Sleep Token", seconds: 127, source: .shazam))
+        #expect(CapturedSong.make(title: "   ", artist: "A", seconds: 5, source: .appleMusic) == nil)
+        #expect(CapturedSong.make(title: nil, artist: "A", seconds: 5, source: .appleMusic) == nil)
+    }
+
+    @Test func makeKeepsTheArtistWhenMissingAndClampsThePosition() {
+        #expect(CapturedSong.make(title: "T", artist: nil, seconds: 5, source: .appleMusic)?.artist == "")
+        #expect(CapturedSong.make(title: "T", artist: "A", seconds: 99_999, source: .appleMusic)?.seconds == 1200)
+        #expect(CapturedSong.make(title: "T", artist: "A", seconds: -3, source: .appleMusic)?.seconds == nil)
+        #expect(CapturedSong.make(title: "T", artist: "A", seconds: .nan, source: .appleMusic)?.seconds == nil)
+        #expect(CapturedSong.make(title: "T", artist: "A", seconds: nil, source: .appleMusic)?.seconds == nil)
+    }
+
+    @Test func firstSourceThatFindsASongWins() async {
+        let capturer = NowPlayingCapturer(sources: [
+            Fake(outcome: .song(song("First"))),
+            Fake(outcome: .song(song("Second", source: .shazam)))
+        ])
+        #expect(await capturer.capture() == .song(song("First")))
+    }
+
+    @Test func aSourceThatFindsNothingOrIsDeniedDoesNotStopTheNext() async {
+        let capturer = NowPlayingCapturer(sources: [
+            Fake(outcome: .denied("Apple Music access is off.")),
+            Fake(outcome: .nothing),
+            Fake(outcome: .song(song("Heard it", source: .shazam)))
+        ])
+        #expect(await capturer.capture() == .song(song("Heard it", source: .shazam)))
+    }
+
+    @Test func aDenialIsOnlyReportedWhenNoSourceFoundASong() async {
+        let denied = NowPlayingCapturer(sources: [
+            Fake(outcome: .denied("Apple Music access is off.")),
+            Fake(outcome: .nothing)
+        ])
+        #expect(await denied.capture() == .denied("Apple Music access is off."))
+        let nothing = NowPlayingCapturer(sources: [Fake(outcome: .nothing), Fake(outcome: .nothing)])
+        #expect(await nothing.capture() == .nothing)
+        #expect(await NowPlayingCapturer(sources: []).capture() == .nothing)
+    }
+
+    @Test func theFirstDenialWins() async {
+        let capturer = NowPlayingCapturer(sources: [
+            Fake(outcome: .denied("one")), Fake(outcome: .denied("two"))
+        ])
+        #expect(await capturer.capture() == .denied("one"))
+    }
+
+    @Test func messagesExplainWhatToDo() {
+        #expect(CaptureOutcome.song(song("x")).message == nil)
+        #expect(CaptureOutcome.nothing.message?.contains("type the song in") == true)
+        #expect(CaptureOutcome.denied("Microphone access is off.").message == "Microphone access is off.")
+    }
+
+    @Test @MainActor func aCaptureRequestIsConsumedOnce() {
+        let request = CaptureRequest.shared
+        request.isPending = true
+        #expect(request.consume() == true)
+        #expect(request.consume() == false)
+    }
+}

@@ -12,6 +12,7 @@ struct ContentView: View {
     @State private var errorMessage: String?
     @State private var navigationPath = NavigationPath()
     @State private var showNewTrigger = false
+    @State private var autoCaptureNext = false
     @State private var patternsExpanded: Bool = false
 
     var body: some View {
@@ -187,16 +188,21 @@ struct ContentView: View {
             .navigationBarTitleDisplayMode(.inline)
             .floatingActionButton { showNewTrigger = true }
             .sheet(isPresented: $showNewTrigger) {
+                autoCaptureNext = false
                 Task {
                     await loadEvents()
                     await loadInsights()
                 }
             } content: {
-                NavigationStack { NewTriggerView() }
+                NavigationStack { NewTriggerView(autoCapture: autoCaptureNext) }
             }
             .task {
+                openCaptureIfRequested()
                 await loadEvents()
                 await loadInsights()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .captureNowPlayingRequested)) { _ in
+                openCaptureIfRequested()
             }
             .refreshable {
                 DataCache.shared.invalidateAll()
@@ -897,6 +903,14 @@ struct WhyItWorksCard: View {
  // MARK: - Supabase loading
 
 private extension ContentView {
+    /// Opens the logging form pre-filled when the Action Button, Siri or a Shortcut asked for a capture.
+    func openCaptureIfRequested() {
+        if CaptureRequest.shared.consume() {
+            autoCaptureNext = true
+            showNewTrigger = true
+        }
+    }
+
     func loadEvents() async {
         let client = SupabaseClientManager.shared.client
         guard let session = try? await client.auth.session else {

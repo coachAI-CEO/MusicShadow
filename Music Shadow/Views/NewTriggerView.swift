@@ -128,10 +128,19 @@ private struct FormProgressIndicator: View {
 
 struct NewTriggerView: View {
 
+    /// True when the Action Button, Siri or a Shortcut opened the form: fill the song in right away.
+    var autoCapture: Bool
+
+    init(autoCapture: Bool = false) {
+        self.autoCapture = autoCapture
+    }
+
     // MARK: - Song
     @State private var songTitle: String = ""
     @State private var artist: String = ""
     @State private var timestampSeconds: Int = 0
+    @State private var isCapturing: Bool = false
+    @State private var captureNote: String?
     @State private var lyricsSnippet: String = ""
 
     // MARK: - Somatic
@@ -485,6 +494,8 @@ struct NewTriggerView: View {
                 .font(.headline)
                 .foregroundColor(MSTheme.secondaryText)
 
+            captureControl
+
             VStack(alignment: .leading, spacing: 8) {
                 // Artist
                 VStack(alignment: .leading, spacing: 4) {
@@ -593,6 +604,61 @@ struct NewTriggerView: View {
             }
         }
         .shadowCard()
+        .task(id: autoCapture) {
+            if autoCapture { await captureNowPlaying() }
+        }
+    }
+
+    // MARK: - Capture what's playing
+
+    private var captureControl: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Button {
+                Task { await captureNowPlaying() }
+            } label: {
+                HStack(spacing: 8) {
+                    if isCapturing {
+                        ProgressView().tint(.white)
+                    } else {
+                        Image(systemName: "waveform")
+                    }
+                    Text(isCapturing ? "Listening…" : "Capture what's playing")
+                }
+                .font(.subheadline.weight(.medium))
+                .padding(.vertical, 10)
+                .padding(.horizontal, 14)
+                .background(Color.white.opacity(0.08))
+                .cornerRadius(12)
+                .foregroundColor(.white)
+            }
+            .disabled(isCapturing)
+            .accessibilityHint("Fills in the song and time from Apple Music, or listens for a few seconds")
+
+            if let captureNote {
+                Text(captureNote)
+                    .font(.caption)
+                    .foregroundColor(MSTheme.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private func captureNowPlaying() async {
+        guard !isCapturing else { return }
+        isCapturing = true
+        captureNote = nil
+        let outcome = await NowPlayingCapturer.live.capture()
+        isCapturing = false
+        switch outcome {
+        case .song(let song):
+            songTitle = song.title
+            artist = song.artist
+            if let seconds = song.seconds { timestampSeconds = seconds }
+            captureNote = "Filled in from \(song.source.rawValue). Check it's right."
+            HapticManager.trigger(.success)
+        case .nothing, .denied:
+            captureNote = outcome.message
+        }
     }
 
     // MARK: - SOMATIC SECTION
