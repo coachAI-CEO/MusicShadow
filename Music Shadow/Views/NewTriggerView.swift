@@ -365,7 +365,7 @@ struct NewTriggerView: View {
                         .foregroundColor(.white)
                         .font(.headline)
 
-                    Text("Music Shadow is asking Gemini for a reflection on this activation.")
+                    Text("Your reflection will appear in a moment.")
                         .foregroundColor(.white.opacity(0.8))
                         .font(.footnote)
                         .multilineTextAlignment(.center)
@@ -1105,6 +1105,35 @@ struct NewTriggerView: View {
                 )
             }
 
+            // Ask for the reflection in the background. The result screen polls for it, so saving does not
+            // wait on Gemini, and milestone saves (which return early below) still get a reflection.
+            await MainActor.run { self.errorMessage = nil }
+            let insightArtist = trimmedArtist.isEmpty ? nil : trimmedArtist
+            let trimmedLyrics = lyricsSnippet.trimmingCharacters(in: .whitespacesAndNewlines)
+            let insightLyrics = trimmedLyrics.isEmpty ? nil : trimmedLyrics
+            let insightSeconds = timestampSeconds
+            Task {
+                do {
+                    try await triggerInsight(
+                        eventId: eventId,
+                        songTitle: trimmedTitle,
+                        artist: insightArtist,
+                        lyricsSnippet: insightLyrics,
+                        timestampSeconds: insightSeconds
+                    )
+                } catch {
+                    // Surface the function's raw body if available (we build NSError with body as localizedDescription)
+                    await MainActor.run {
+                        HapticManager.trigger(.warning)
+                        self.errorMessage = "Saved activation, but insight failed: \(error.localizedDescription)"
+                        self.reflectionTimedOut = true
+                    }
+                    #if DEBUG
+                    print("🔴 generate_insight failed:", error)
+                    #endif
+                }
+            }
+
             // Check for milestone celebration
             // Reload events count to check for milestone
             DataCache.shared.invalidateEventsCache()
@@ -1128,31 +1157,6 @@ struct NewTriggerView: View {
             } catch {
                 // Silently fail milestone check - not critical
                 DebugMode.shared.log("Error checking milestone: \(error.localizedDescription)", category: "Error")
-            }
-
-            // 2) Trigger Gemini Insight (Edge Function) with song, lyrics, and timestamp so the AI can link lyrics at that time to the reflection
-            do {
-                try await triggerInsight(
-                    eventId: eventId,
-                    songTitle: trimmedTitle,
-                    artist: trimmedArtist.isEmpty ? nil : trimmedArtist,
-                    lyricsSnippet: lyricsSnippet.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : lyricsSnippet.trimmingCharacters(in: .whitespacesAndNewlines),
-                    timestampSeconds: timestampSeconds
-                )
-            } catch {
-                // Surface the function's raw body if available (we build NSError with body as localizedDescription)
-                await MainActor.run {
-                    HapticManager.trigger(.warning)
-                    self.errorMessage = "Saved activation, but insight failed: \(error.localizedDescription)"
-                }
-                #if DEBUG
-                print("🔴 generate_insight failed:", error)
-                #endif
-                // Don't return; keep UX successful since the trigger is saved.
-            }
-
-            await MainActor.run {
-                self.errorMessage = nil
             }
 
             if showMilestoneCelebration {
