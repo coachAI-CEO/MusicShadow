@@ -144,8 +144,8 @@ struct InsightLabelsTests {
 }
 
 struct FeatureFlagTests {
-    @Test func partnerUIIsOffForV1() {
-        #expect(FeatureFlags.partnerEnabled == false)
+    @Test func partnerLinkingIsOn() {
+        #expect(FeatureFlags.partnerEnabled == true)
     }
 }
 
