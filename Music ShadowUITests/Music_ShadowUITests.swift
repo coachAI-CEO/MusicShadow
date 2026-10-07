@@ -38,4 +38,72 @@ final class Music_ShadowUITests: XCTestCase {
             XCUIApplication().launch()
         }
     }
+
+    // MARK: - Send sheet (Phase 0)
+
+    @MainActor
+    private func launchSendSheet() -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments = ["-uiTestSendSheet", "-sendSongExplainerSeen", "NO"]
+        app.launch()
+        return app
+    }
+
+    @MainActor
+    func testSendSheetExplainerThenEmptyNoteBlocksSend() throws {
+        let app = launchSendSheet()
+        let gotIt = app.buttons["Got it"]
+        XCTAssertTrue(gotIt.waitForExistence(timeout: 5), "first-run explainer should appear")
+        gotIt.tap()
+
+        let send = app.buttons["Review"]
+        XCTAssertTrue(send.waitForExistence(timeout: 5))
+        XCTAssertFalse(send.isEnabled, "an empty note must block Review")
+    }
+
+    @MainActor
+    func testStarterPromptInsertsTextAndEnablesSend() throws {
+        let app = launchSendSheet()
+        if app.buttons["Got it"].waitForExistence(timeout: 5) { app.buttons["Got it"].tap() }
+
+        let prompt = app.buttons["What do I wish you knew?"]
+        XCTAssertTrue(prompt.waitForExistence(timeout: 5))
+        prompt.tap()
+
+        let note = app.textViews["Your note"]
+        XCTAssertTrue(note.waitForExistence(timeout: 5))
+        XCTAssertTrue((note.value as? String ?? "").contains("What do I wish you knew?"))
+        XCTAssertTrue(app.buttons["Review"].isEnabled)
+    }
+
+    @MainActor
+    func testReviewScreenShowsWhatWhenAndHowLongBeforeAnythingIsSent() throws {
+        let app = launchSendSheet()
+        if app.buttons["Got it"].waitForExistence(timeout: 5) { app.buttons["Got it"].tap() }
+
+        let prompt = app.buttons["What do I wish you knew?"]
+        XCTAssertTrue(prompt.waitForExistence(timeout: 5))
+        prompt.tap()
+        app.buttons["Review"].tap()
+
+        // The iTunes lookup times out after 3 seconds and falls back to a search link, so this works offline too.
+        XCTAssertTrue(app.staticTexts["What you're sharing"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.staticTexts["What stays private"].exists)
+        XCTAssertTrue(app.staticTexts["When it goes"].exists)
+        XCTAssertTrue(app.staticTexts["How long"].exists)
+        XCTAssertTrue(app.buttons["Choose who to send to"].exists)
+        XCTAssertTrue(app.buttons["Edit"].exists)
+
+        app.buttons["Edit"].tap()
+        XCTAssertTrue(app.buttons["Review"].waitForExistence(timeout: 5))
+    }
+
+    @MainActor
+    func testExplainerShowsOnlyOnce() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["-uiTestSendSheet", "-sendSongExplainerSeen", "YES"]
+        app.launch()
+        XCTAssertTrue(app.buttons["Review"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["Got it"].exists)
+    }
 }

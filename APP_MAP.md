@@ -14,14 +14,16 @@ This is a single source of truth for "what is the app right now." It separates t
 
 Music Shadow is an **iOS vulnerability tool for close relationships, built on a foundation of solo shadow work**. The core loop: a song hits you → you log it → AI surfaces what's underneath (wound type, core belief, nervous system pattern) → you understand what you feel → you send the song and your reflection to someone who matters to you → they see what you meant, not just a link.
 
-The solo shadow work (journaling, 10 Jungian archetypes, AI insights, pattern detection) is the prerequisite — it teaches you to understand your emotional responses to music. The share is the payoff. The partner feature is the product.
+The solo shadow work (journaling, 10 shadow archetypes (Music Shadow's own set, inspired by Jungian shadow work), AI insights, pattern detection) is the prerequisite — it teaches you to understand your emotional responses to music. The share is the payoff. The partner feature is the product.
 
-**Two moats:** (1) both sides reflected — if both people in a relationship use it, the receiver is also tracking their own music-emotion responses, creating dialogue instead of delivery; (2) somatic + psychological grounding — music → body sensation → Jungian archetype → emotional language, at a depth no mainstream app reaches.
+**Two moats:** (1) both sides reflected — if both people in a relationship use it, the receiver is also tracking their own music-emotion responses, creating dialogue instead of delivery; (2) somatic + psychological grounding — music → body sensation → named archetype pattern → emotional language, at a depth no mainstream app reaches.
 
 **Tagline (from docs):** *"Every song that hits you is a map to your shadow."*  
 **Target tagline (toward):** *"Say what you couldn't say. Send the song."*
 
 ---
+
+> **Update 2026-10-07 (after /autoplan review):** Build item 1 (partner read path, "Migration 4") is **unscheduled**; the partner migration moved to `supabase/migrations_deferred/` (never apply as written: its `auth.users using (true)` policy exposes every email) and partner UI is hidden by `FeatureFlags.partnerEnabled = false`. A **Phase 0 "dumb send"** test comes first (`docs/phase-0-dumb-send.md`): a note plus the song link through the iOS share sheet, no server. The full pipeline is specified in `docs/share-spec.md` and starts only after a go. Also shipped: four light archetypes (The Open Heart, The Free One, The Celebrant, The Connector; scored only from positive hits, SF Symbol icons until brand art exists), the valence branch in `generate_insight` (the logging form already asked shadow vs positive), and a send log in Settings. MusicKit search stays disabled; `ITunesSearchService` is the play-link source.
 
 > **Product direction as of 2026-10-06 (office hours session):**  
 > Music Shadow is being reframed from a solo journal to a dyadic vulnerability tool. The partner feature — specifically the send flow and no-signup web receive experience — is now the highest-priority build. See `docs/office-hours-2026-10-06.md` for the full evaluation.
@@ -202,7 +204,7 @@ Each row uses:
 | Client `PartnerTriggerDetailView` | 🟡 reachable, data path broken |
 | RLS that lets a partner read shared events | ❌ **none.** `(user_id = auth.uid())` denies all cross-user SELECT |
 | Server-side partner invite / accept / revoke RPC | ❌ **none** |
-| Migration 4 (the partner-read policy) | ❌ **pending** — spec exists in `docs/partner-feature-spec.md` |
+| Migration 4 (the partner-read policy) | ⏸ **deferred** (2026-10-07) — file parked in `supabase/migrations_deferred/`; item 1 unscheduled, see `docs/share-spec.md` |
 | **Send flow** — "Send this song" after insight, write your own note | ❌ **not started** |
 | **Web receive page** — private link, no signup required, song + reflection | ❌ **not started** — this is the growth loop |
 | **`song_shares` table** — stores send token, sender note, song details | ❌ **not started** |
@@ -302,7 +304,8 @@ What they **cannot** do:
 The product has been reframed as a **dyadic vulnerability tool** — understand yourself through music, then share that understanding with someone who matters. The solo features (journaling, archetypes, insights) are the foundation. The send + receive loop is the product. Build in this order:
 
 ### Tier 1 — Enables the core loop (do first)
-1. **Migration 4 + partner invite RPC** — RLS policy for cross-user reads, invite flow, `partner_links.status` enum. Blocks everything below. ~4-6 hours.
+0. **Phase 0 dumb send** (built, not yet run) — `docs/phase-0-dumb-send.md`. Items 2-4 below start only after a go; spec in `docs/share-spec.md`.
+1. ~~**Migration 4 + partner invite RPC**~~ *(unscheduled 2026-10-07, see banner at top)* — RLS policy for cross-user reads, invite flow, `partner_links.status` enum. Blocks everything below. ~4-6 hours.
 2. **`song_shares` table** — new table: `id`, `event_id`, `sender_id`, `sender_note` (the reflection in the sender's own words), `share_token` (UUID, public), `created_at`. ~30 min SQL.
 3. **Send flow in the app** — after getting an AI insight, "Send this song" button → sender sees the AI insight as context → writes a short note in their own words → generates a `song_shares` row + private link. ~3-4 hours iOS.
 4. **Web receive page** — a Supabase Edge Function (or simple web page) served at a stable URL, takes `?token=<uuid>`, returns a page showing: song, sender's reflection. No account required. CTA at bottom: "Want to understand what music says about you?" → App Store link. ~2-3 hours. This is the growth loop.

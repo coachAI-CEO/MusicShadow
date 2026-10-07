@@ -11,6 +11,7 @@ struct TriggerDetailView: View {
     @State private var shareWithPartner: Bool
     @State private var isSavingShare = false
     @State private var journalExpanded = false
+    @State private var showSendSheet = false
     @State private var relatedEvents: [SongEvent] = []
 
     init(event: SongEvent) {
@@ -167,30 +168,54 @@ struct TriggerDetailView: View {
                     }
                 }
 
-                // MARK: Share with partner
-                DetailCard {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Text("Share with partner")
-                                .font(.headline)
-                                .foregroundColor(MSTheme.primaryText)
-                            Spacer()
-                            Toggle("", isOn: $shareWithPartner)
-                                .labelsHidden()
-                                .tint(MSTheme.Colors.accentPrimary)
-                                .disabled(isSavingShare)
-                                .onChange(of: shareWithPartner) { newValue in
-                                    Task { await updateShareWithPartner(newValue) }
-                                }
+                // MARK: Send this song (Phase 0)
+                Button {
+                    showSendSheet = true
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "paperplane.fill")
+                        Text("Send this song with a note")
+                            .font(.headline)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 48)
+                    .background(
+                        RoundedRectangle(cornerRadius: MSTheme.CornerRadius.lg, style: .continuous)
+                            .fill(MSTheme.Colors.accentPrimary.opacity(0.85))
+                    )
+                    .foregroundColor(.white)
+                }
+                .buttonStyle(.plain)
+                .accessibilityHint("Write a note in your own words and share it with the song link")
+                .sheet(isPresented: $showSendSheet) {
+                    SendSongSheet(songTitle: event.song_title ?? "Unknown song", artist: event.artist ?? "")
+                }
+
+                if FeatureFlags.partnerEnabled {
+                    // MARK: Share with partner
+                    DetailCard {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Text("Share with partner")
+                                    .font(.headline)
+                                    .foregroundColor(MSTheme.primaryText)
+                                Spacer()
+                                Toggle("", isOn: $shareWithPartner)
+                                    .labelsHidden()
+                                    .tint(MSTheme.Colors.accentPrimary)
+                                    .disabled(isSavingShare)
+                                    .onChange(of: shareWithPartner) { newValue in
+                                        Task { await updateShareWithPartner(newValue) }
+                                    }
+                            }
+                            Text("When enabled, this activation appears in your partner summary view.")
+                                .font(.caption)
+                                .foregroundColor(MSTheme.secondaryText)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Text("Shared activations appear in your partner's daily summary.")
+                                .font(.caption)
+                                .foregroundColor(MSTheme.secondaryText.opacity(0.7))
+                                .fixedSize(horizontal: false, vertical: true)
                         }
-                        Text("When enabled, this activation appears in your partner summary view.")
-                            .font(.caption)
-                            .foregroundColor(MSTheme.secondaryText)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Text("Shared activations appear in your partner's daily summary.")
-                            .font(.caption)
-                            .foregroundColor(MSTheme.secondaryText.opacity(0.7))
-                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
 
@@ -413,9 +438,10 @@ struct TriggerDetailView: View {
 
     private func keyThemes(from insight: ShadowInsight) -> [String] {
         var themes: [String] = []
-        if let w = insight.wound_type, !w.isEmpty { themes.append("Wound: \(w)") }
-        if let p = insight.protector_mode, !p.isEmpty { themes.append("Protector: \(p)") }
-        if let b = insight.core_belief, !b.isEmpty { themes.append("Belief: \(b)") }
+        let labels = InsightLabels.labels(forValence: event.valence)
+        if let w = insight.wound_type, !w.isEmpty { themes.append("\(labels.first): \(w)") }
+        if let p = insight.protector_mode, !p.isEmpty { themes.append("\(labels.second): \(p)") }
+        if let b = insight.core_belief, !b.isEmpty { themes.append("\(labels.third): \(b)") }
         return themes
     }
 

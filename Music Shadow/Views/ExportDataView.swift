@@ -454,9 +454,15 @@ struct ExportIncludedItem: View {
 
 struct ShareSheet: UIViewControllerRepresentable {
     let items: [Any]
+    /// Optional: called with whether the user completed a share (used by the send flow).
+    var onFinish: ((Bool) -> Void)? = nil
 
     func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: items, applicationActivities: nil)
+        let controller = UIActivityViewController(activityItems: items, applicationActivities: nil)
+        if let onFinish {
+            controller.completionWithItemsHandler = { _, completed, _, _ in onFinish(completed) }
+        }
+        return controller
     }
 
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}

@@ -1,0 +1,38 @@
+{
+  "purpose": "Golden set for the generate_insight valence branch. Run each case through the deployed function and check the output against the rules below. Wound cases must stay unchanged in tone versus stored insights; gift cases must not use wound language.",
+  "rules": {
+    "gift": {
+      "must_not_match": ["wound", "trauma", "shadow", "abandon", "shame", "protect(s|or) (against|from)"],
+      "must_match": ["\\b\\d+:\\d{2}\\b|minute|second"],
+      "notes": "Appreciative, specific to the song moment, cites time and lyric."
+    },
+    "wound": {
+      "must_match": ["wound|protect|belief|fear|shame"],
+      "notes": "Compare against the stored insight for the same event before and after the change; tone should not drift."
+    }
+  },
+  "gift": [
+    {"song": "Here Comes the Sun", "artist": "The Beatles", "time": "0:45", "body": "chest", "note": "warmth, relief, wanted to smile"},
+    {"song": "Landslide", "artist": "Fleetwood Mac", "time": "1:12", "body": "throat", "note": "felt held by someone who understands change"},
+    {"song": "Dog Days Are Over", "artist": "Florence + The Machine", "time": "2:05", "body": "wholeBody", "note": "joy, wanted to run"},
+    {"song": "Better Together", "artist": "Jack Johnson", "time": "0:30", "body": "chest", "note": "thought of my partner"},
+    {"song": "Lover", "artist": "Taylor Swift", "time": "1:50", "body": "chest", "note": "soft, safe, home"},
+    {"song": "Three Little Birds", "artist": "Bob Marley", "time": "0:55", "body": "head", "note": "calm, permission to relax"},
+    {"song": "Clair de Lune", "artist": "Debussy", "time": "3:10", "body": "wholeBody", "note": "quiet awe"},
+    {"song": "Home", "artist": "Edward Sharpe & The Magnetic Zeros", "time": "1:20", "body": "chest", "note": "belonging"},
+    {"song": "Put Your Records On", "artist": "Corinne Bailey Rae", "time": "0:40", "body": "limbs", "note": "lightness, ease"},
+    {"song": "Fast Car", "artist": "Tracy Chapman", "time": "2:30", "body": "throat", "note": "hope for a different life, wanted to tell someone"}
+  ],
+  "wound": [
+    {"song": "Fade Into You", "artist": "Mazzy Star", "time": "1:05", "body": "chest", "note": "ache, wanting to be seen"},
+    {"song": "Mad World", "artist": "Gary Jules", "time": "1:30", "body": "gut", "note": "numb, heavy"},
+    {"song": "Hurt", "artist": "Johnny Cash", "time": "2:10", "body": "throat", "note": "regret, tight"},
+    {"song": "Skinny Love", "artist": "Bon Iver", "time": "0:50", "body": "chest", "note": "fear of being left"},
+    {"song": "Hallelujah", "artist": "Jeff Buckley", "time": "3:00", "body": "chest", "note": "grief rising"},
+    {"song": "Creep", "artist": "Radiohead", "time": "0:55", "body": "gut", "note": "I do not belong"},
+    {"song": "Someone Like You", "artist": "Adele", "time": "1:45", "body": "throat", "note": "jealous and sad"},
+    {"song": "The Night We Met", "artist": "Lord Huron", "time": "1:10", "body": "chest", "note": "wanting to go back"},
+    {"song": "Everybody Hurts", "artist": "R.E.M.", "time": "2:00", "body": "head", "note": "overwhelm, wanting to disappear"},
+    {"song": "Tears in Heaven", "artist": "Eric Clapton", "time": "1:40", "body": "wholeBody", "note": "loss, cannot breathe"}
+  ]
+}

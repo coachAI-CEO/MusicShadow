@@ -14,7 +14,7 @@ and se
 ### What is Music Shadow?
 Music Shadow is a vulnerability tool for close relationships, built on a foundation of solo shadow work. The loop: a song hits you → you log it → AI surfaces what's underneath → you understand what you feel → you send the song and your reflection to someone who matters → they see what you meant to say.
 
-The solo features (journaling, AI insights, 10 Jungian archetypes, pattern detection) are the prerequisite: they teach you to understand your emotional responses to music. The share is the payoff.
+The solo features (journaling, AI insights, 10 shadow archetypes (Music Shadow's own set, inspired by Jungian shadow work), pattern detection) are the prerequisite: they teach you to understand your emotional responses to music. The share is the payoff.
 
 **Core Concept:** You can only share a feeling you've first understood yourself. Music Shadow helps you understand it — then say the unsayable through the song you'd have sent anyway.
 
@@ -162,7 +162,7 @@ The solo features (journaling, AI insights, 10 Jungian archetypes, pattern detec
 
 2. **"Understand Why Music Hits You"**
    - AI surfaces the wound type, core belief, and nervous system pattern underneath
-   - 10 Jungian shadow archetypes map your emotional patterns over time
+   - 10 shadow archetypes (Music Shadow's own named patterns, inspired by Jungian shadow work) map your emotional patterns over time
    - The insight is yours — the AI helps you name what you already feel
 
 3. **"Built for Two"**

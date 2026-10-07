@@ -1,0 +1,31 @@
+{
+  "configurations" : [
+    {
+      "id" : "0F3D2B6A-7C1E-4C55-9A3B-5D1E2C4B8A10",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:Music Shadow.xcodeproj",
+        "identifier" : "FA8B405D2ECA787D00F23D9A",
+        "name" : "Music ShadowTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:Music Shadow.xcodeproj",
+        "identifier" : "FA8B40672ECA787D00F23D9A",
+        "name" : "Music ShadowUITests"
+      }
+    }
+  ],
+  "version" : 1
+}

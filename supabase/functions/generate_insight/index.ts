@@ -3,6 +3,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { momentTailFor, systemPromptFor } from "./prompts.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -191,21 +192,10 @@ serve(async (req) => {
     if (lyricsSnippet) songContext.push(`The user also highlighted this line: «${lyricsSnippet}»`);
     const songContextBlock =
       songContext.length > 0
-        ? `\n\n--- THE EXACT MOMENT IN THE SONG (use this in your reflection) ---\n${songContext.join("\n")}\n---\n\nYour summary and insights MUST reference this moment: the time in the song and the lyrics above. Quote or paraphrase the lyrics and say what was playing (e.g. "Around 1:23 in [Song], when the line '…' plays"). Do not give a generic reflection—tie the wound, protector, and belief to this specific moment and these words.`
+        ? `\n\n--- THE EXACT MOMENT IN THE SONG (use this in your reflection) ---\n${songContext.join("\n")}\n---${momentTailFor(row.valence)}`
         : "";
 
-    const systemPrompt = `You are a thoughtful shadow-work coach. The user has logged a music activation: a specific moment in a song that triggered something in their body or psyche.
-
-Your job is to produce a reflection that:
-1. wound_type: A brief label for the wound or vulnerability (e.g. "Fear of abandonment", "Need to be perfect").
-2. protector_mode: How the psyche protects (e.g. "Withdraws", "People-pleasing", "Guards with anger").
-3. core_belief: One core belief that might be underneath (e.g. "I'm too much", "I must be useful to be loved").
-4. summary: 2–4 sentences that are SPECIFIC to this activation. You MUST include (a) the time in the song (e.g. "around 1:23" or "about two minutes in"), (b) the song title (and artist if known), and (c) the actual lyric line(s) at that moment—quote or paraphrase them—then connect those words to what the user felt and wrote. Do not give a generic reflection; the summary should only make sense for this song at this moment.
-5. suggested_practice: One gentle practice or question (optional).
-
-If the user provided a song and/or lyrics at the spike time, your summary must cite that moment and those lyrics. If no song/lyrics were provided, you may still give a reflection based only on their body and journal.
-
-Respond in JSON only, with keys: wound_type, protector_mode, core_belief, summary, suggested_practice. Keep each value concise.`;
+    const systemPrompt = systemPromptFor(row.valence);
 
     const userPrompt = `The user logged an activation with:
 - Body location: ${row.body_location ?? "—"}

@@ -9,31 +9,20 @@ Total estimated effort: **~18-26 hours of focused work**, spread over 4 calendar
 
 ---
 
-## New sequencing (updated 2026-10-06)
+## Current sequencing (updated 2026-10-07, after /autoplan)
+
+The 2026-10-06 order below it is superseded. Source of truth: `docs/share-spec.md` section 8 and `docs/send-receive-plan.md` ("Final gate overrides").
 
 ```
-Week 1:  [0] Migration 4 + partner invite RPC  (blocks everything)
-              │
-              ├── unlocks cross-user reads
-              │
-Week 1-2:[1] song_shares table + send flow in iOS
-              │
-              ├── enables sending
-              │
-Week 2-3:[2] Web receive page (Edge Function)  ← the growth loop
-              │
-Week 3:  [3] iOS polish: pull-to-refresh + swipe actions
-              │
-Week 4:  [4] Onboarding reframe + MusicKit decision
+Phase 0 (3-5 days): dumb send with 5-10 real pairs   <- built, run it first
+     |  go/no-go (docs/phase-0-dumb-send.md)
+     v
+Week 1:   domain + static host + share_view spike + TestFlight + song_shares migration
+Week 1-2: send flow (picker, preview step, expiry)
+Week 2-3: receive page, OG, limiter, shared songs list
+Week 4:   onboarding reframe, then polish
+Item 1 (partner read path): unscheduled. Valence branch: shipped.
 ```
-
-Why this order:
-- **[0] first** — RLS and partner invite are the foundation. Nothing else is real without them.
-- **[1] before [2]** — need the `song_shares` row to exist before the web page can serve it.
-- **[2] is the growth loop** — every send is a potential new user. Ship this before polishing other things.
-- **[3] and [4] are polish** — valuable but not blocking the core loop.
-
----
 
 ---
 

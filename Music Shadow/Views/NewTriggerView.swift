@@ -764,26 +764,28 @@ struct NewTriggerView: View {
             }
             .padding(.top, 8)
 
-            // Partner sharing toggle
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 6) {
-                    Image(systemName: "person.2.wave.2")
-                        .foregroundColor(.purple.opacity(0.9))
-                    Text("Share with partner")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundColor(MSTheme.secondaryText)
-                }
+            // Partner sharing toggle (hidden for v1, see FeatureFlags)
+            if FeatureFlags.partnerEnabled {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "person.2.wave.2")
+                            .foregroundColor(.purple.opacity(0.9))
+                        Text("Share with partner")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundColor(MSTheme.secondaryText)
+                    }
 
-                Toggle(
-                    isOn: $shareWithPartner
-                ) {
-                    Text("Include this activation in your partner summary.")
-                        .font(.caption2)
-                        .foregroundColor(MSTheme.secondaryText.opacity(0.9))
+                    Toggle(
+                        isOn: $shareWithPartner
+                    ) {
+                        Text("Include this activation in your partner summary.")
+                            .font(.caption2)
+                            .foregroundColor(MSTheme.secondaryText.opacity(0.9))
+                    }
+                    .toggleStyle(SwitchToggleStyle(tint: .purple))
                 }
-                .toggleStyle(SwitchToggleStyle(tint: .purple))
+                .padding(.top, 8)
             }
-            .padding(.top, 8)
         }
         .shadowCard()
         .animation(.easeInOut(duration: 0.2), value: valence)

@@ -1311,7 +1311,7 @@ private struct SongEventRow: View {
             Spacer()
 
             HStack(spacing: 6) {
-                if event.share_with_partner == true {
+                if FeatureFlags.partnerEnabled && event.share_with_partner == true {
                     Image(systemName: "person.2")
                         .font(.caption2)
                         .foregroundColor(MSTheme.secondaryText)

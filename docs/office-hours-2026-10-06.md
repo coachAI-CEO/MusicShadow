@@ -55,7 +55,7 @@ Yes. The founder went through the app, understood himself through music. His wif
 
 Two moats:
 1. **Partner dynamic — both sides reflected.** If both people use it, the receiver isn't passive. They're also tracking their own emotional responses to music. That creates a dialogue, not a delivery. Spotify can't replicate that without also building the inner work layer.
-2. **Somatic + psychological grounding.** Music → body sensation → Jungian archetype → emotional language. No one else operates at this depth. Most apps stop at mood (happy/sad). This goes deeper: the archetype is a diagnosis of the pattern beneath the feeling.
+2. **Somatic + psychological grounding.** Music → body sensation → named archetype pattern (Music Shadow's own set, inspired by Jungian shadow work) → emotional language. No one else operates at this depth. Most apps stop at mood (happy/sad). This goes deeper: the archetype is a diagnosis of the pattern beneath the feeling.
 
 ---
 
@@ -101,7 +101,7 @@ No AI-generated summary of her response (yet). No reply required. A moment, not 
 | **Primary user** | Solo reflector | Person in a close relationship who has felt things music |
 | **Partner feature** | ~25% — schema exists, UI stub, no receive side | Full send + receive loop with emotional context |
 | **Tagline** | "Every song that hits you is a map to your shadow" | "Say what you couldn't say. Send the song." |
-| **Moat** | Jungian/somatic framing (unique, defensible) | Jungian/somatic framing + both-sides-reflected dyadic data |
+| **Moat** | Shadow-work/somatic framing (unique, defensible) | Shadow-work/somatic framing + both-sides-reflected dyadic data |
 
 ---
 
