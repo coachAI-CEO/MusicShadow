@@ -139,6 +139,8 @@ struct NewTriggerView: View {
     @State private var songTitle: String = ""
     @State private var artist: String = ""
     @State private var timestampSeconds: Int = 0
+    @State private var songDurationSeconds: Int?
+    @State private var capturedDurationKey: String?
     @State private var isCapturing: Bool = false
     @State private var captureNote: String?
     @State private var lyricsSnippet: String = ""
@@ -562,12 +564,18 @@ struct NewTriggerView: View {
                 .font(.title3.monospacedDigit())
                 .padding(.bottom, 4)
 
+                if let songDurationSeconds {
+                    Text(String(format: "of about %d:%02d", songDurationSeconds / 60, songDurationSeconds % 60))
+                        .font(.caption)
+                        .foregroundColor(MSTheme.secondaryText)
+                }
+
                 Slider(
                     value: Binding(
                         get: { Double(timestampSeconds) },
                         set: { timestampSeconds = Int($0) }
                     ),
-                    in: 0...1200,
+                    in: 0...Double(sliderMaxSeconds),
                     step: 1
                 )
                 .tint(.purple.opacity(0.9))
@@ -587,7 +595,7 @@ struct NewTriggerView: View {
                     }
 
                     Button {
-                        timestampSeconds = min(1200, timestampSeconds + 10)
+                        timestampSeconds = min(sliderMaxSeconds, timestampSeconds + 10)
                     } label: {
                         HStack {
                             Image(systemName: "forward.fill")
@@ -606,6 +614,9 @@ struct NewTriggerView: View {
         .shadowCard()
         .task(id: autoCapture) {
             if autoCapture { await captureNowPlaying() }
+        }
+        .task(id: durationKey) {
+            await refreshSongDuration()
         }
     }
 
@@ -643,6 +654,29 @@ struct NewTriggerView: View {
         }
     }
 
+    // MARK: - Song length
+
+    private var sliderMaxSeconds: Int { max(1, songDurationSeconds ?? 1200) }
+
+    /// Changes when the typed song or artist changes, which restarts the length lookup.
+    private var durationKey: String {
+        "\(songTitle.trimmingCharacters(in: .whitespacesAndNewlines).lowercased())|\(artist.trimmingCharacters(in: .whitespacesAndNewlines).lowercased())"
+    }
+
+    private func refreshSongDuration() async {
+        // A length that came with a capture already belongs to this song.
+        if durationKey == capturedDurationKey { return }
+        songDurationSeconds = nil
+        let title = songTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        let by = artist.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !title.isEmpty, !by.isEmpty else { return }
+        try? await Task.sleep(for: .milliseconds(800))
+        guard !Task.isCancelled else { return }
+        guard let length = await ITunesSearchService.duration(title: title, artist: by), !Task.isCancelled else { return }
+        songDurationSeconds = length
+        if timestampSeconds > length { timestampSeconds = length }
+    }
+
     private func captureNowPlaying() async {
         guard !isCapturing else { return }
         isCapturing = true
@@ -654,6 +688,11 @@ struct NewTriggerView: View {
             songTitle = song.title
             artist = song.artist
             if let seconds = song.seconds { timestampSeconds = seconds }
+            if let length = song.durationSeconds {
+                songDurationSeconds = length
+                capturedDurationKey = durationKey
+                timestampSeconds = min(timestampSeconds, length)
+            }
             captureNote = "Filled in from \(song.source.rawValue). Check it's right."
             HapticManager.trigger(.success)
         case .nothing, .denied:

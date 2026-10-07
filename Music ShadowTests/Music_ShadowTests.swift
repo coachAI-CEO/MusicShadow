@@ -458,3 +458,63 @@ struct NowPlayingCaptureTests {
         #expect(request.consume() == false)
     }
 }
+
+// MARK: - Song length
+
+struct SongLengthTests {
+    private func json(_ items: [(String, String, Int?)]) -> Data {
+        let rows = items.map { name, artist, ms in
+            "{\"trackName\":\"\(name)\",\"artistName\":\"\(artist)\"" + (ms.map { ",\"trackTimeMillis\":\($0)" } ?? "") + "}"
+        }.joined(separator: ",")
+        return Data("{\"resultCount\":\(items.count),\"results\":[\(rows)]}".utf8)
+    }
+
+    @Test func usesTheLengthOfTheSameSong() {
+        let data = json([("Rain", "Sleep Token", 252_158)])
+        #expect(ITunesSearchService.matchingDuration(in: data, title: "Rain", artist: "Sleep Token") == 252)
+    }
+
+    @Test func skipsLiveAndRemixVersionsAndTakesTheRealOne() {
+        let data = json([
+            ("Rain (Live)", "Sleep Token", 300_000),
+            ("Rain - Remix", "Sleep Token", 280_000),
+            ("Rain", "Sleep Token", 252_158)
+        ])
+        #expect(ITunesSearchService.matchingDuration(in: data, title: "Rain", artist: "Sleep Token") == 252)
+    }
+
+    @Test func givesNothingWhenOnlyOtherVersionsOrOtherSongsMatch() {
+        let live = json([("Rain (Live)", "Sleep Token", 300_000)])
+        #expect(ITunesSearchService.matchingDuration(in: live, title: "Rain", artist: "Sleep Token") == nil)
+        let other = json([("Rain", "Patti Page", 180_000)])
+        #expect(ITunesSearchService.matchingDuration(in: other, title: "Rain", artist: "Sleep Token") == nil)
+    }
+
+    @Test func ignoresCaseAccentsPunctuationAndRemasterTags() {
+        let data = json([("Fade Into You - Remastered 2011", "Mazzy Star", 296_000)])
+        #expect(ITunesSearchService.matchingDuration(in: data, title: "fade into you", artist: "MAZZY STAR") == 296)
+        let paren = json([("Café del Mar (2009 Remaster)", "Energy 52", 480_000)])
+        #expect(ITunesSearchService.matchingDuration(in: paren, title: "Cafe del Mar", artist: "Energy 52") == 480)
+    }
+
+    @Test func aFeatureCreditOnEitherSideStillMatchesTheArtist() {
+        let data = json([("Hello", "Adele & Someone", 295_000)])
+        #expect(ITunesSearchService.matchingDuration(in: data, title: "Hello", artist: "Adele") == 295)
+        #expect(ITunesSearchService.sameArtist("Adele", "Adele feat. Someone"))
+        #expect(!ITunesSearchService.sameArtist("Adele", "Beyonce"))
+    }
+
+    @Test func rejectsMissingOrImplausibleLengthsAndBadData() {
+        #expect(ITunesSearchService.matchingDuration(in: json([("Rain", "Sleep Token", nil)]), title: "Rain", artist: "Sleep Token") == nil)
+        #expect(ITunesSearchService.matchingDuration(in: json([("Rain", "Sleep Token", 500)]), title: "Rain", artist: "Sleep Token") == nil)
+        #expect(ITunesSearchService.matchingDuration(in: json([("Rain", "Sleep Token", 99_999_999)]), title: "Rain", artist: "Sleep Token") == nil)
+        #expect(ITunesSearchService.matchingDuration(in: Data("nope".utf8), title: "Rain", artist: "Sleep Token") == nil)
+    }
+
+    @Test func aCapturedSongKeepsASaneLengthOnly() {
+        #expect(CapturedSong.make(title: "T", artist: "A", seconds: 5, source: .appleMusic, duration: 252.4)?.durationSeconds == 252)
+        #expect(CapturedSong.make(title: "T", artist: "A", seconds: 5, source: .appleMusic, duration: 0)?.durationSeconds == nil)
+        #expect(CapturedSong.make(title: "T", artist: "A", seconds: 5, source: .appleMusic, duration: .nan)?.durationSeconds == nil)
+        #expect(CapturedSong.make(title: "T", artist: "A", seconds: 5, source: .shazam)?.durationSeconds == nil)
+    }
+}

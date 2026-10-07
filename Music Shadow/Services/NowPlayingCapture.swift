@@ -15,9 +15,11 @@ struct CapturedSong: Equatable {
     /// Seconds into the track at capture time, or nil when the source cannot tell.
     let seconds: Int?
     let source: Source
+    /// Length of the whole song in seconds, when the source knows it.
+    var durationSeconds: Int? = nil
 
     /// Trims the text, drops songs with no title, and keeps the position inside the form's slider range.
-    static func make(title: String?, artist: String?, seconds: TimeInterval?, source: Source, maxSeconds: Int = 1200) -> CapturedSong? {
+    static func make(title: String?, artist: String?, seconds: TimeInterval?, source: Source, duration: TimeInterval? = nil, maxSeconds: Int = 1200) -> CapturedSong? {
         let cleanTitle = (title ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleanTitle.isEmpty else { return nil }
         let cleanArtist = (artist ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
@@ -25,7 +27,9 @@ struct CapturedSong: Equatable {
         if let seconds, seconds.isFinite, seconds >= 0 {
             position = min(Int(seconds), maxSeconds)
         }
-        return CapturedSong(title: cleanTitle, artist: cleanArtist, seconds: position, source: source)
+        var length: Int?
+        if let duration, duration.isFinite, (10...7200).contains(duration) { length = Int(duration.rounded()) }
+        return CapturedSong(title: cleanTitle, artist: cleanArtist, seconds: position, source: source, durationSeconds: length)
     }
 }
 
@@ -94,7 +98,8 @@ struct AppleMusicNowPlayingSource: NowPlayingSource {
             title: item.title,
             artist: item.artist,
             seconds: player.currentPlaybackTime,
-            source: .appleMusic
+            source: .appleMusic,
+            duration: item.playbackDuration
         ) else { return .nothing }
         return .song(song)
     }
