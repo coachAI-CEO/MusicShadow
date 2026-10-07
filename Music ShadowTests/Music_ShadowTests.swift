@@ -518,3 +518,24 @@ struct SongLengthTests {
         #expect(CapturedSong.make(title: "T", artist: "A", seconds: 5, source: .shazam)?.durationSeconds == nil)
     }
 }
+
+// MARK: - Dashboard archetype summary
+
+struct ArchetypeSummaryTests {
+    @Test func noScoresOrAZeroScoreGivesNothing() {
+        #expect(ArchetypeSummary.make(from: []) == nil)
+        #expect(ArchetypeSummary.make(from: [ArchetypeScore(archetype: .ghost, score: 0)]) == nil)
+    }
+
+    @Test func theTopScoreWinsAndThreeMatchesReadAsConfident() {
+        let top = ArchetypeSummary.make(from: [ArchetypeScore(archetype: .maker, score: 3), ArchetypeScore(archetype: .freeOne, score: 2)])
+        #expect(top?.archetype == .maker)
+        #expect(top?.isConfident == true)
+        #expect(ArchetypeSummary.make(from: [ArchetypeScore(archetype: .maker, score: 2)])?.isConfident == false)
+    }
+
+    @Test func theCardTitleNamesTheKind() {
+        #expect(ShadowArchetype.ghost.navigationTitle == "Shadow archetype")
+        #expect(ShadowArchetype.maker.navigationTitle == "Light archetype")
+    }
+}

@@ -162,8 +162,8 @@ struct ContentView: View {
                             )
                         }
 
-                        // HERO ARCHETYPE
-                        if let archetype = patternsGlanceSnapshot.archetype {
+                        // HERO ARCHETYPES: what protects you, and what lifts you
+                        ForEach([patternsGlanceSnapshot.archetype, patternsGlanceSnapshot.lightArchetype].compactMap { $0 }, id: \.archetype) { archetype in
                             SectionContainer {
                                 NavigationLink { ShadowArchetypeDetailView(archetype: archetype.archetype) } label: {
                                     HeroArchetypeCard(archetype: archetype)
@@ -440,6 +440,12 @@ struct TopItemSummary {
 struct ArchetypeSummary {
     let archetype: ShadowArchetype
     let isConfident: Bool
+
+    /// The top scored archetype, or nil when nothing has scored yet. Three or more matches reads as confident.
+    static func make(from scores: [ArchetypeScore]) -> ArchetypeSummary? {
+        guard let primary = scores.first, primary.score > 0 else { return nil }
+        return ArchetypeSummary(archetype: primary.archetype, isConfident: primary.score >= 3)
+    }
 }
 
 struct PatternsGlanceSnapshot {
@@ -447,6 +453,7 @@ struct PatternsGlanceSnapshot {
     let topImpulse: TopItemSummary?
     let topSomatic: TopItemSummary?
     let archetype: ArchetypeSummary?
+    let lightArchetype: ArchetypeSummary?
 }
 
 private extension ContentView {
@@ -455,13 +462,15 @@ private extension ContentView {
         let body = topItem(from: events.compactMap { $0.body_location })
         let impulse = topItem(from: events.compactMap { $0.impulse })
         let somatic = topItem(from: events.compactMap { $0.somatic_type })
-        let archetype = archetypeSummary(from: insights, events: events)
+        let archetype = ArchetypeSummary.make(from: ArchetypeEngine.scores(from: insights, events: events))
+        let light = ArchetypeSummary.make(from: ArchetypeEngine.lightScores(from: insights, events: events))
 
         return PatternsGlanceSnapshot(
             topBody: body,
             topImpulse: impulse,
             topSomatic: somatic,
-            archetype: archetype
+            archetype: archetype,
+            lightArchetype: light
         )
     }
 
@@ -474,22 +483,6 @@ private extension ContentView {
 
         guard let top = counts.first else { return nil }
         return TopItemSummary(label: top.label, count: top.count)
-    }
-
-    func archetypeSummary(from insights: [ShadowInsight], events: [SongEvent]) -> ArchetypeSummary? {
-        let scores = ArchetypeEngine.scores(from: insights, events: events)
-
-        guard let primary = scores.first, primary.score > 0 else {
-            return nil
-        }
-
-        // You can tweak this threshold later
-        let isConfident = primary.score >= 3
-
-        return ArchetypeSummary(
-            archetype: primary.archetype,
-            isConfident: isConfident
-        )
     }
 }
 
@@ -553,7 +546,7 @@ struct HeroArchetypeCard: View {
             ArchetypeIcon(archetype: archetype.archetype, size: 56)
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("Shadow archetype")
+                Text(archetype.archetype.navigationTitle)
                     .font(.caption.weight(.semibold))
                     .foregroundColor(MSTheme.secondaryText)
 
