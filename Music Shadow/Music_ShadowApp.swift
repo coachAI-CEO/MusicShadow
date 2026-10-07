@@ -11,6 +11,8 @@ struct Music_ShadowApp: App {
             if CommandLine.arguments.contains("-uiTestSendSheet") {
                 // Debug-only route so UI tests can exercise the send sheet without an account.
                 SendSongSheet(songTitle: "Fade Into You", artist: "Mazzy Star")
+            } else if CommandLine.arguments.contains("-uiTestPartner") {
+                DebugPartnerPreview()
             } else if CommandLine.arguments.contains("-uiTestArchetypes") {
                 NavigationStack {
                     ArchetypesView(events: DebugSamples.events, insights: DebugSamples.insights)

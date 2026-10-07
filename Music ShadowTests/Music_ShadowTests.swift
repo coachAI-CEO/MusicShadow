@@ -539,3 +539,271 @@ struct ArchetypeSummaryTests {
         #expect(ShadowArchetype.maker.navigationTitle == "Light archetype")
     }
 }
+
+// MARK: - Partner linking
+
+struct PartnerCodeTests {
+    @Test func normalizeKeepsLettersAndDigitsInUpperCaseUpToEight() {
+        #expect(PartnerCode.normalize("abcd-efgh") == "ABCDEFGH")
+        #expect(PartnerCode.normalize(" ab cd 23 45 extra ") == "ABCD2345")
+        #expect(PartnerCode.normalize("") == "")
+    }
+
+    @Test func displayAddsADashAfterFour() {
+        #expect(PartnerCode.display("abcdefgh") == "ABCD-EFGH")
+        #expect(PartnerCode.display("abc") == "ABC")
+        #expect(PartnerCode.display("ABCD") == "ABCD")
+    }
+
+    @Test func aCompleteCodeHasEightCharactersFromTheSafeAlphabet() {
+        #expect(PartnerCode.isComplete("ABCD-EFGH"))
+        #expect(PartnerCode.isComplete("abcd2345"))
+        #expect(!PartnerCode.isComplete("ABCD-EFG"))
+        #expect(!PartnerCode.isComplete("ABCD-EFG0"))   // 0 is never in a code
+        #expect(!PartnerCode.isComplete("ABCDEFGI"))    // nor I
+    }
+
+    @Test func theShareMessageHasTheCodeAndTheWayToUseIt() {
+        let text = PartnerCode.shareMessage(code: "abcdefgh")
+        #expect(text.contains("ABCD-EFGH"))
+        #expect(text.contains("Settings"))
+        #expect(text.contains("48 hours"))
+    }
+}
+
+struct ShareLevelTests {
+    @Test func unknownOrMissingMeansTheMostPrivateLevel() {
+        #expect(ShareLevel(stored: nil) == .minimal)
+        #expect(ShareLevel(stored: "") == .minimal)
+        #expect(ShareLevel(stored: "weird") == .minimal)
+        #expect(ShareLevel(stored: "summary") == .summary)
+        #expect(ShareLevel(stored: "FULL") == .full)
+    }
+
+    @Test func everyLevelHasPlainWords() {
+        for level in ShareLevel.allCases {
+            #expect(!level.title.isEmpty && !level.detail.isEmpty)
+        }
+    }
+}
+
+struct PartnerStateTests {
+    private func status(_ state: String, name: String? = nil, code: String? = nil, expires: String? = nil) -> PartnerStatus {
+        PartnerStatus(state: state, partner_name: name, invite_code: code, invite_expires_at: expires, paired_at: nil)
+    }
+
+    @Test func statusMapsToAState() {
+        #expect(PartnerLinkState(status("none")) == .none)
+        #expect(PartnerLinkState(status("paired", name: "Sam")) == .paired(partnerName: "Sam"))
+        #expect(PartnerLinkState(status("weird")) == .none)
+        #expect(PartnerLinkState(status("invited")) == .none)   // an invite with no code is not usable
+        if case .invited(let code, let expires) = PartnerLinkState(status("invited", code: "ABCDEFGH", expires: "2026-10-09T12:00:00.123456+00:00")) {
+            #expect(code == "ABCDEFGH")
+            #expect(expires != nil)
+        } else {
+            Issue.record("expected an invited state")
+        }
+    }
+
+    @Test func datesParseWithAndWithoutFractionalSeconds() {
+        #expect(PartnerDates.parse("2026-10-09T12:00:00Z") != nil)
+        #expect(PartnerDates.parse("2026-10-09T12:00:00.250Z") != nil)
+        #expect(PartnerDates.parse("") == nil)
+        #expect(PartnerDates.parse(nil) == nil)
+        #expect(PartnerDates.parse("yesterday") == nil)
+    }
+
+    @Test func relativeTimesReadInWords() {
+        let now = Date()
+        #expect(PartnerDates.relative(now.addingTimeInterval(-7200), now: now) == "2 hours ago")
+        #expect(PartnerDates.relative(now.addingTimeInterval(-86400 * 3), now: now).contains("3 days"))
+    }
+
+    @Test func databaseErrorsBecomeFriendlyMessages() {
+        struct E: Error, CustomStringConvertible { let description: String }
+        #expect(PartnerLinkError(E(description: "PostgrestError(message: \"already_paired\")")) == .alreadyPaired)
+        #expect(PartnerLinkError(E(description: "rate_limited")) == .rateLimited)
+        #expect(PartnerLinkError(E(description: "not_signed_in")) == .notSignedIn)
+        #expect(PartnerLinkError(E(description: "Could not find the function public.partner_status")) == .notAvailable)
+        #expect(PartnerLinkError(E(description: "boom")) == .other)
+        for e in [PartnerLinkError.alreadyPaired, .rateLimited, .notSignedIn, .notAvailable, .other] {
+            #expect(!e.message.isEmpty)
+        }
+    }
+
+    @Test func aFeedRowDecodesWithMissingFieldsAndKnowsItsLevel() throws {
+        let json = """
+        [{"event_id":"10000000-0000-0000-0000-000000000001","created_at":"2026-10-07T10:00:00+00:00",
+          "song_title":"Rain","artist":"Sleep Token","intensity":7,"valence":"positive","share_level":"MINIMAL",
+          "body_location":null,"somatic_type":null,"impulse":null,"pattern_report":null,"free_journal":null,
+          "archetype":null,"wound_type":null,"protector_mode":null,"core_belief":null,"summary":null}]
+        """.data(using: .utf8)!
+        let items = try JSONDecoder().decode([PartnerFeedItem].self, from: json)
+        #expect(items.count == 1)
+        #expect(items[0].level == .minimal)
+        #expect(items[0].isPositive)
+        #expect(!items[0].hasReflection)
+        #expect(items[0].date != nil)
+    }
+
+    @Test func aFeedRowWithAnyReflectionTextCountsAsHavingOne() throws {
+        let json = """
+        {"event_id":"10000000-0000-0000-0000-000000000002","share_level":"SUMMARY","summary":"It felt like rain."}
+        """.data(using: .utf8)!
+        let item = try JSONDecoder().decode(PartnerFeedItem.self, from: json)
+        #expect(item.hasReflection)
+        #expect(item.level == .summary)
+        #expect(!item.isPositive)
+    }
+}
+
+@MainActor
+struct PartnerLinkModelTests {
+    private final class StubAPI: PartnerAPI {
+        struct Boom: Error, CustomStringConvertible { let description: String }
+
+        var statusValue = PartnerStatus(state: "none", partner_name: nil, invite_code: nil, invite_expires_at: nil, paired_at: nil)
+        var statusError: Error?
+        var inviteValue = PartnerInvite(invite_code: "ABCDEFGH", invite_expires_at: "2026-10-09T12:00:00Z")
+        var inviteError: Error?
+        var acceptValue = true
+        var acceptError: Error?
+        var unlinkError: Error?
+        var lastInviteName: String??
+        var lastAccepted: (code: String, name: String?)?
+        var acceptCalls = 0
+        var cancelled = false
+        var unlinked = false
+
+        func status() async throws -> PartnerStatus {
+            if let statusError { throw statusError }
+            return statusValue
+        }
+        func createInvite(name: String?) async throws -> PartnerInvite {
+            lastInviteName = .some(name)
+            if let inviteError { throw inviteError }
+            return inviteValue
+        }
+        func accept(code: String, name: String?) async throws -> Bool {
+            acceptCalls += 1
+            lastAccepted = (code, name)
+            if let acceptError { throw acceptError }
+            return acceptValue
+        }
+        func cancelInvite() async throws { cancelled = true }
+        func unlink() async throws -> Bool {
+            if let unlinkError { throw unlinkError }
+            unlinked = true
+            return true
+        }
+        func feed(limit: Int, before: Date?) async throws -> [PartnerFeedItem] { [] }
+    }
+
+    @Test func refreshShowsPairedAndLoaded() async {
+        let api = StubAPI()
+        api.statusValue = PartnerStatus(state: "paired", partner_name: "Sam", invite_code: nil, invite_expires_at: nil, paired_at: nil)
+        let model = PartnerLinkModel(api: api)
+        #expect(!model.isLoaded)
+        await model.refresh()
+        #expect(model.isLoaded)
+        #expect(model.state == .paired(partnerName: "Sam"))
+    }
+
+    @Test func refreshFailureStillEndsLoadingAndSaysWhy() async {
+        let api = StubAPI()
+        api.statusError = StubAPI.Boom(description: "Could not find the function public.partner_status")
+        let model = PartnerLinkModel(api: api)
+        await model.refresh()
+        #expect(model.isLoaded)
+        #expect(model.message == PartnerLinkError.notAvailable.message)
+        #expect(model.state == .none)
+    }
+
+    @Test func creatingAnInviteShowsTheCodeAndTrimsTheName() async {
+        let api = StubAPI()
+        let model = PartnerLinkModel(api: api)
+        await model.createInvite(name: "  Alex  ")
+        #expect(api.lastInviteName == .some("Alex"))
+        if case .invited(let code, _) = model.state { #expect(code == "ABCDEFGH") } else { Issue.record("expected invited") }
+        await model.createInvite(name: "   ")
+        #expect(api.lastInviteName == .some(nil))
+    }
+
+    @Test func aLongNameIsCutToForty() async {
+        let api = StubAPI()
+        let model = PartnerLinkModel(api: api)
+        await model.createInvite(name: String(repeating: "x", count: 80))
+        #expect(api.lastInviteName??.count == 40)
+    }
+
+    @Test func creatingAnInviteWhileLinkedExplainsWhy() async {
+        let api = StubAPI()
+        api.inviteError = StubAPI.Boom(description: "already_paired")
+        let model = PartnerLinkModel(api: api)
+        await model.createInvite(name: "")
+        #expect(model.message == PartnerLinkError.alreadyPaired.message)
+        #expect(model.state == .none)
+    }
+
+    @Test func joiningNeedsAFullCodeAndDoesNotCallTheServerWithoutOne() async {
+        let api = StubAPI()
+        let model = PartnerLinkModel(api: api)
+        await model.join(code: "ABCD", name: "")
+        #expect(api.acceptCalls == 0)
+        #expect(model.message != nil)
+    }
+
+    @Test func aCodeThatDoesNotWorkLeavesYouUnlinkedWithAMessage() async {
+        let api = StubAPI()
+        api.acceptValue = false
+        let model = PartnerLinkModel(api: api)
+        await model.join(code: "abcd-efgh", name: "Sam")
+        #expect(api.lastAccepted?.code == "ABCDEFGH")
+        #expect(api.lastAccepted?.name == "Sam")
+        #expect(model.state == .none)
+        #expect(model.message?.contains("didn't work") == true)
+    }
+
+    @Test func joiningWithAGoodCodeLinksYouUp() async {
+        let api = StubAPI()
+        api.statusValue = PartnerStatus(state: "paired", partner_name: "Alex", invite_code: nil, invite_expires_at: nil, paired_at: nil)
+        let model = PartnerLinkModel(api: api)
+        await model.join(code: "ABCD2345", name: "")
+        #expect(model.state == .paired(partnerName: "Alex"))
+        #expect(model.message == nil)
+    }
+
+    @Test func tooManyTriesIsExplained() async {
+        let api = StubAPI()
+        api.acceptError = StubAPI.Boom(description: "rate_limited")
+        let model = PartnerLinkModel(api: api)
+        await model.join(code: "ABCD2345", name: "")
+        #expect(model.message == PartnerLinkError.rateLimited.message)
+    }
+
+    @Test func cancellingAndUnlinkingReturnToNone() async {
+        let api = StubAPI()
+        let model = PartnerLinkModel(api: api)
+        await model.createInvite(name: "")
+        await model.cancelInvite()
+        #expect(api.cancelled)
+        #expect(model.state == .none)
+
+        api.statusValue = PartnerStatus(state: "paired", partner_name: "Sam", invite_code: nil, invite_expires_at: nil, paired_at: nil)
+        await model.refresh()
+        await model.unlink()
+        #expect(api.unlinked)
+        #expect(model.state == .none)
+    }
+
+    @Test func aFailedUnlinkKeepsYouLinkedAndSaysSo() async {
+        let api = StubAPI()
+        api.statusValue = PartnerStatus(state: "paired", partner_name: "Sam", invite_code: nil, invite_expires_at: nil, paired_at: nil)
+        api.unlinkError = StubAPI.Boom(description: "network down")
+        let model = PartnerLinkModel(api: api)
+        await model.refresh()
+        await model.unlink()
+        #expect(model.state == .paired(partnerName: "Sam"))
+        #expect(model.message == PartnerLinkError.other.message)
+    }
+}

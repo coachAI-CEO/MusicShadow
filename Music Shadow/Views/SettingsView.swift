@@ -2,10 +2,6 @@ import SwiftUI
 import Supabase
 
 struct SettingsView: View {
-    // MARK: - Partner
-    @AppStorage("partnerEmail") private var savedPartnerEmail: String = ""
-    @State private var partnerEmailInput: String = ""
-
     // MARK: - Debug
     @State private var debugModeEnabled: Bool = DebugMode.shared.isEnabled
 
@@ -17,9 +13,6 @@ struct SettingsView: View {
     @State private var showSignOutAlert: Bool = false
     @State private var showEraseAlert: Bool = false
     @State private var isErasing: Bool = false
-    @State private var partnerSaveConfirmation: String = ""
-    @State private var isSavingPartner: Bool = false
-    @State private var isUnlinkingPartner: Bool = false
 
     var body: some View {
         ScrollView {
@@ -93,103 +86,9 @@ struct SettingsView: View {
                 }
 
                 if FeatureFlags.partnerEnabled {
-                    // MARK: Partner visibility
-                    SettingsSectionCard(title: "Partner visibility", subtitle: "Optionally let one trusted person see a gentle summary of certain activations you choose to share.") {
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text("Partner email")
-                                .font(.caption.weight(.medium))
-                                .foregroundColor(MSTheme.secondaryText)
-
-                            TextField("partner@email.com", text: $partnerEmailInput)
-                                .textFieldStyle(MSTextFieldStyle())
-                                .autocapitalization(.none)
-                                .disableAutocorrection(true)
-                                .keyboardType(.emailAddress)
-
-                            Text("This doesn't send an invite yet. For now, it helps Music Shadow prepare a shared view for the future.")
-                                .font(.caption2)
-                                .foregroundColor(MSTheme.secondaryText.opacity(0.7))
-
-                            Text("The partner summary only includes events where you turned on \"Share with partner\" while logging.")
-                                .font(.caption2)
-                                .foregroundColor(MSTheme.secondaryText.opacity(0.7))
-
-                            if !savedPartnerEmail.isEmpty {
-                                Text("Partner saved: \(savedPartnerEmail)")
-                                    .font(.caption)
-                                    .foregroundColor(MSTheme.secondaryText)
-                            }
-
-                            if !partnerSaveConfirmation.isEmpty {
-                                Text(partnerSaveConfirmation)
-                                    .font(.caption)
-                                    .foregroundColor(.green)
-                            }
-
-                            Button {
-                                Task { await savePartner() }
-                            } label: {
-                                HStack {
-                                    Image(systemName: "square.and.arrow.down")
-                                    Text("Save partner")
-                                        .font(.callout.weight(.semibold))
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 12)
-                                .background(
-                                    RoundedRectangle(cornerRadius: MSTheme.CornerRadius.lg, style: .continuous)
-                                        .fill(Color.white.opacity(0.08))
-                                )
-                                .foregroundColor(MSTheme.primaryText)
-                            }
-                            .buttonStyle(.plain)
-
-                            if !savedPartnerEmail.isEmpty {
-                                Button {
-                                    Task { await unlinkPartner() }
-                                } label: {
-                                    HStack {
-                                        Image(systemName: "xmark.circle")
-                                        Text("Unlink partner")
-                                            .font(.callout.weight(.semibold))
-                                    }
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 12)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: MSTheme.CornerRadius.lg, style: .continuous)
-                                            .fill(MSTheme.Colors.error.opacity(0.15))
-                                    )
-                                    .foregroundColor(MSTheme.Colors.error)
-                                }
-                                .buttonStyle(.plain)
-                            }
-
-                            NavigationLink {
-                                PartnerFeedView()
-                            } label: {
-                                HStack(spacing: 12) {
-                                    Image(systemName: "person.2.wave.2")
-                                        .font(.footnote.weight(.semibold))
-                                        .foregroundColor(MSTheme.Colors.accentPrimary)
-                                        .frame(width: 30, height: 30)
-                                        .background(Circle().fill(Color.white.opacity(0.08)))
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text("Preview partner summary")
-                                            .font(.callout.weight(.semibold))
-                                            .foregroundColor(MSTheme.primaryText)
-                                        Text("See the gentle, high-level view a partner could see.")
-                                            .font(.caption2)
-                                            .foregroundColor(MSTheme.secondaryText)
-                                    }
-                                    Spacer()
-                                    Image(systemName: "chevron.right")
-                                        .font(.caption.weight(.semibold))
-                                        .foregroundColor(MSTheme.secondaryText)
-                                }
-                                .padding(.top, 4)
-                            }
-                            .buttonStyle(.plain)
-                        }
+                    // MARK: Partner
+                    SettingsSectionCard(title: "Partner", subtitle: "Link with one person you trust. They only see what you choose to share.") {
+                        PartnerLinkView()
                     }
                 }
 
@@ -303,7 +202,6 @@ struct SettingsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             loadUserEmail()
-            partnerEmailInput = savedPartnerEmail
         }
         .alert("Log Out", isPresented: $showSignOutAlert) {
             Button("Cancel", role: .cancel) {}
@@ -365,81 +263,6 @@ struct SettingsView: View {
                 // user isn't stranded on a half-authed AuthView.
                 NotificationCenter.default.post(name: .musicShadowDidLogout, object: nil)
             }
-        }
-    }
-
-    private func savePartner() async {
-        let email = partnerEmailInput.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !email.isEmpty else { return }
-
-        await MainActor.run { isSavingPartner = true }
-
-        let client = SupabaseClientManager.shared.client
-        guard let session = try? await client.auth.session else {
-            await MainActor.run {
-                isSavingPartner = false
-                partnerSaveConfirmation = "Not signed in."
-            }
-            return
-        }
-
-        do {
-            let payload: [String: String] = [
-                "owner_user_id": session.user.id.uuidString,
-                "partner_email": email,
-                "status": "active"
-            ]
-            try await client
-                .from("partner_links")
-                .upsert(payload, onConflict: "owner_user_id")
-                .execute()
-
-            await MainActor.run {
-                savedPartnerEmail = email
-                isSavingPartner = false
-                partnerSaveConfirmation = "Saved!"
-                HapticManager.trigger(.medium)
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                partnerSaveConfirmation = ""
-            }
-        } catch {
-            DebugMode.shared.log("savePartner error: \(error.localizedDescription)", category: "Error")
-            await MainActor.run {
-                isSavingPartner = false
-                partnerSaveConfirmation = "Save failed."
-                HapticManager.trigger(.error)
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                partnerSaveConfirmation = ""
-            }
-        }
-    }
-
-    private func unlinkPartner() async {
-        await MainActor.run { isUnlinkingPartner = true }
-
-        let client = SupabaseClientManager.shared.client
-        guard let session = try? await client.auth.session else {
-            await MainActor.run { isUnlinkingPartner = false }
-            return
-        }
-
-        do {
-            try await client
-                .from("partner_links")
-                .delete()
-                .eq("owner_user_id", value: session.user.id.uuidString)
-                .execute()
-        } catch {
-            DebugMode.shared.log("unlinkPartner error: \(error.localizedDescription)", category: "Error")
-        }
-
-        await MainActor.run {
-            savedPartnerEmail = ""
-            partnerEmailInput = ""
-            isUnlinkingPartner = false
-            HapticManager.trigger(.medium)
         }
     }
 

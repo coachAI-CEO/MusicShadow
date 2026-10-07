@@ -156,6 +156,7 @@ struct NewTriggerView: View {
 
     // MARK: - Partner sharing
     @State private var shareWithPartner: Bool = false
+    @State private var shareLevel: ShareLevel = .minimal
 
     // MARK: - Journal (guided)
     @State private var bodyReport: String = ""
@@ -883,11 +884,15 @@ struct NewTriggerView: View {
                     Toggle(
                         isOn: $shareWithPartner
                     ) {
-                        Text("Include this activation in your partner summary.")
+                        Text("Let your linked partner see this activation.")
                             .font(.caption2)
                             .foregroundColor(MSTheme.secondaryText.opacity(0.9))
                     }
                     .toggleStyle(SwitchToggleStyle(tint: .purple))
+
+                    if shareWithPartner {
+                        ShareLevelPicker(level: $shareLevel)
+                    }
                 }
                 .padding(.top, 8)
             }
@@ -1096,7 +1101,7 @@ struct NewTriggerView: View {
                 interruption_directive: interruptionDirective.isEmpty ? nil : interruptionDirective,
                 free_journal: freeJournal.isEmpty ? nil : freeJournal,
                 share_with_partner: shareWithPartner,
-                partner_share_level: "MINIMAL", // Default to MINIMAL for new events
+                partner_share_level: shareLevel.rawValue,
                 source_type: "manual",
                 source_context: nil,
                 ai_reason: nil

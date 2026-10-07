@@ -9,6 +9,7 @@ struct TriggerDetailView: View {
     @State private var insightError: String?
     @State private var isRegenerating = false
     @State private var shareWithPartner: Bool
+    @State private var shareLevel: ShareLevel
     @State private var isSavingShare = false
     @State private var journalExpanded = false
     @State private var showSendSheet = false
@@ -17,6 +18,7 @@ struct TriggerDetailView: View {
     init(event: SongEvent) {
         self.event = event
         _shareWithPartner = State(initialValue: event.share_with_partner ?? false)
+        _shareLevel = State(initialValue: ShareLevel(stored: event.partner_share_level))
     }
 
     var body: some View {
@@ -204,17 +206,19 @@ struct TriggerDetailView: View {
                                     .tint(MSTheme.Colors.accentPrimary)
                                     .disabled(isSavingShare)
                                     .onChange(of: shareWithPartner) { newValue in
-                                        Task { await updateShareWithPartner(newValue) }
+                                        Task { await updateShare() }
                                     }
                             }
-                            Text("When enabled, this activation appears in your partner summary view.")
+                            Text("When on, your linked partner can see this activation, at the level you choose below.")
                                 .font(.caption)
                                 .foregroundColor(MSTheme.secondaryText)
                                 .fixedSize(horizontal: false, vertical: true)
-                            Text("Shared activations appear in your partner's daily summary.")
-                                .font(.caption)
-                                .foregroundColor(MSTheme.secondaryText.opacity(0.7))
-                                .fixedSize(horizontal: false, vertical: true)
+                            if shareWithPartner {
+                                ShareLevelPicker(level: $shareLevel, disabled: isSavingShare)
+                                    .onChange(of: shareLevel) { _ in
+                                        Task { await updateShare() }
+                                    }
+                            }
                         }
                     }
                 }
@@ -539,12 +543,16 @@ struct TriggerDetailView: View {
         } catch { }
     }
 
-    private func updateShareWithPartner(_ value: Bool) async {
+    private func updateShare() async {
+        struct ShareUpdate: Encodable {
+            let share_with_partner: Bool
+            let partner_share_level: String
+        }
         isSavingShare = true
         do {
             try await SupabaseClientManager.shared.client
                 .from("song_events")
-                .update(["share_with_partner": value])
+                .update(ShareUpdate(share_with_partner: shareWithPartner, partner_share_level: shareLevel.rawValue))
                 .eq("id", value: event.id.uuidString)
                 .execute()
             HapticManager.trigger(.light)
